@@ -20,11 +20,10 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 text-white">
-      {!isMobile && isLoaded && (
+
         <div className="fixed inset-0 z-0">
           <ThreeBackground />
         </div>
-      )}
       <div className="relative z-10">
         <Header />
         <main>

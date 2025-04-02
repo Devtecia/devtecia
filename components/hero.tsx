@@ -1,13 +1,84 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, Suspense, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
+import { Canvas, useFrame, useThree } from "@react-three/fiber"
+import { useGLTF, OrbitControls, Environment, PerspectiveCamera } from "@react-three/drei"
+import * as THREE from "three"
+
+interface MousePosition {
+  x: number;
+  y: number;
+}
+
+function BuhoModel({ mousePosition }: { mousePosition: MousePosition }) {
+  const { scene } = useGLTF("/buho.glb")
+  const modelRef = useRef<THREE.Object3D>(null!)
+  
+  useFrame(() => {
+    if (modelRef.current) {
+      // Aumentando la sensibilidad de rotación basada en la posición del mouse
+      modelRef.current.rotation.y = THREE.MathUtils.lerp(
+        modelRef.current.rotation.y,
+        mousePosition.x * 1.2, // Aumentado de 0.5 a 1.2
+        0.1 // Aumentado de 0.05 a 0.1 para una respuesta más rápida
+      )
+      modelRef.current.rotation.x = THREE.MathUtils.lerp(
+        modelRef.current.rotation.x,
+        mousePosition.y * 0.5, // Aumentado de 0.2 a 0.5
+        0.1 // Aumentado de 0.05 a 0.1 para una respuesta más rápida
+      )
+      
+      // Añadir un ligero balanceo para más dinamismo
+      modelRef.current.position.y = THREE.MathUtils.lerp(
+        modelRef.current.position.y,
+        mousePosition.y * 0.3,
+        0.05
+      )
+    }
+  })
+
+  return <primitive ref={modelRef} object={scene} scale={1.2} position={[0, 0, 0]} />
+}
+
+function Scene() {
+  const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 })
+  const { viewport } = useThree()
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      setMousePosition({
+        x: (event.clientX / window.innerWidth) * 2 - 1,
+        y: -(event.clientY / window.innerHeight) * 2 + 1
+      })
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [])
+
+  return (
+    <>
+      <PerspectiveCamera makeDefault position={[0, 0, 4]} />
+      <Environment preset="city" />
+      <ambientLight intensity={0.8} />
+      <spotLight position={[5, 5, 5]} angle={0.15} penumbra={1} intensity={1.5} castShadow />
+      <Suspense fallback={null}>
+        <BuhoModel mousePosition={mousePosition} />
+      </Suspense>
+      <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} />
+    </>
+  )
+}
+
+// Precarga del modelo GLB
+useGLTF.preload("/buho.glb")
 
 export function Hero() {
   const heroRef = useRef<HTMLDivElement>(null)
-
+  
   return (
     <section
       ref={heroRef}
@@ -38,7 +109,7 @@ export function Hero() {
                 Comenzar Ahora
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Button variant="outline" className="border-white/20 hover:bg-white/10">
+              <Button variant="outline" className="border-white border-opacity-30 bg-black/30 text-white hover:bg-white/20 hover:text-white">
                 Ver Demostración
               </Button>
             </div>
@@ -50,12 +121,9 @@ export function Hero() {
             className="relative hidden h-[400px] overflow-hidden rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm lg:block"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-600/20"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-6xl font-bold text-white mb-4">AI</div>
-                <div className="text-xl text-white/80">Visualización 3D</div>
-              </div>
-            </div>
+            <Canvas shadows dpr={[1, 2]}>
+              <Scene />
+            </Canvas>
           </motion.div>
         </div>
       </div>
