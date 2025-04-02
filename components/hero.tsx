@@ -27,14 +27,14 @@ function BuhoModel({ mousePosition }: { mousePosition: MousePosition }) {
       )
       modelRef.current.rotation.x = THREE.MathUtils.lerp(
         modelRef.current.rotation.x,
-        mousePosition.y * 0.5, // Aumentado de 0.2 a 0.5
+        -mousePosition.y * 0.5, // Invirtiendo el eje Y con el signo negativo
         0.1 // Aumentado de 0.05 a 0.1 para una respuesta más rápida
       )
       
-      // Añadir un ligero balanceo para más dinamismo
+      // Añadir un ligero balanceo para más dinamismo (también invertido)
       modelRef.current.position.y = THREE.MathUtils.lerp(
         modelRef.current.position.y,
-        mousePosition.y * 0.3,
+        -mousePosition.y * 0.3, // Invirtiendo el eje Y con el signo negativo
         0.05
       )
     }
