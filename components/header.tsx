@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Brain, Menu, X } from "lucide-react"
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Brain, Menu, X } from "lucide-react";
 
 export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/30 backdrop-blur-md">
@@ -16,16 +16,28 @@ export function Header() {
           <span className="text-xl font-bold tracking-tight">Devtecia</span>
         </Link>
         <nav className="hidden md:flex md:items-center md:gap-6">
-          <Link href="#features" className="text-sm font-medium text-white/80 transition-colors hover:text-white">
+          <Link
+            href="#features"
+            className="text-sm font-medium text-white/80 transition-colors hover:text-white"
+          >
             Características
           </Link>
-          <Link href="#about" className="text-sm font-medium text-white/80 transition-colors hover:text-white">
+          <Link
+            href="#about"
+            className="text-sm font-medium text-white/80 transition-colors hover:text-white"
+          >
             Nosotros
           </Link>
-          <Link href="#contact" className="text-sm font-medium text-white/80 transition-colors hover:text-white">
+          <Link
+            href="#contact"
+            className="text-sm font-medium text-white/80 transition-colors hover:text-white"
+          >
             Contacto
           </Link>
-          <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300">
+          <Button
+            variant="outline"
+            className="border-cyan-500 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300"
+          >
             Iniciar Sesión
           </Button>
         </nav>
@@ -36,7 +48,11 @@ export function Header() {
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-label="Toggle Menu"
         >
-          {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {isMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
         </Button>
         {isMenuOpen && (
           <div className="absolute inset-x-0 top-16 z-50 bg-black/90 p-4 backdrop-blur-md md:hidden">
@@ -62,7 +78,10 @@ export function Header() {
               >
                 Contacto
               </Link>
-              <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300">
+              <Button
+                variant="outline"
+                className="border-cyan-500 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300 bg-transparent"
+              >
                 Iniciar Sesión
               </Button>
             </nav>
@@ -70,6 +89,5 @@ export function Header() {
         )}
       </div>
     </header>
-  )
+  );
 }
-
