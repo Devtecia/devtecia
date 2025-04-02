@@ -19,15 +19,22 @@ function BuhoModel({ mousePosition }: { mousePosition: MousePosition }) {
   
   useFrame(() => {
     if (modelRef.current) {
-      // Suave rotación basada en la posición del mouse
+      // Aumentando la sensibilidad de rotación basada en la posición del mouse
       modelRef.current.rotation.y = THREE.MathUtils.lerp(
         modelRef.current.rotation.y,
-        mousePosition.x * 0.5,
-        0.05
+        mousePosition.x * 1.2, // Aumentado de 0.5 a 1.2
+        0.1 // Aumentado de 0.05 a 0.1 para una respuesta más rápida
       )
       modelRef.current.rotation.x = THREE.MathUtils.lerp(
         modelRef.current.rotation.x,
-        mousePosition.y * 0.2,
+        mousePosition.y * 0.5, // Aumentado de 0.2 a 0.5
+        0.1 // Aumentado de 0.05 a 0.1 para una respuesta más rápida
+      )
+      
+      // Añadir un ligero balanceo para más dinamismo
+      modelRef.current.position.y = THREE.MathUtils.lerp(
+        modelRef.current.position.y,
+        mousePosition.y * 0.3,
         0.05
       )
     }
@@ -102,7 +109,7 @@ export function Hero() {
                 Comenzar Ahora
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Button variant="outline" className="border-white/20 hover:bg-white/10">
+              <Button variant="outline" className="border-white border-opacity-30 bg-black/30 text-white hover:bg-white/20 hover:text-white">
                 Ver Demostración
               </Button>
             </div>
