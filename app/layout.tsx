@@ -1,17 +1,20 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import { Toaster } from 'sonner'
+import type { Metadata } from "next";
+import "./globals.css";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: 'Devtecia',
-  description: 'Devtecia',
-  generator: 'Devtecia',
-}
+  title: "Devtecia",
+  description: "Devtecia",
+  generator: "Devtecia",
+  icons: {
+    icon: "/favicon.ico",
+  },
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
@@ -20,5 +23,5 @@ export default function RootLayout({
         <Toaster position="top-right" richColors />
       </body>
     </html>
-  )
+  );
 }

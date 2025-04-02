@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Brain, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import Image from "next/image";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,8 +13,13 @@ export function Header() {
     <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/30 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <Brain className="h-8 w-8 text-cyan-400" />
-          <span className="text-xl font-bold tracking-tight">Devtecia</span>
+          <Image
+            src="/logoDevtecia.svg"
+            width={120}
+            height={60}
+            alt="Equipo Devtecia"
+            className="rounded-lg object-cover"
+          />
         </Link>
         <nav className="hidden md:flex md:items-center md:gap-6">
           <Link
@@ -34,12 +40,12 @@ export function Header() {
           >
             Contacto
           </Link>
-          <Button
+          {/*    <Button
             variant="outline"
             className="border-cyan-500 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300"
           >
             Iniciar Sesión
-          </Button>
+          </Button> */}
         </nav>
         <Button
           variant="ghost"
@@ -78,12 +84,12 @@ export function Header() {
               >
                 Contacto
               </Link>
-              <Button
+              {/*    <Button
                 variant="outline"
                 className="border-cyan-500 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300 bg-transparent"
               >
                 Iniciar Sesión
-              </Button>
+              </Button> */}
             </nav>
           </div>
         )}
