@@ -312,7 +312,7 @@ export default function Home() {
       <section className="method" id="metodo">
         <Image
           className="method-image"
-          src="/devtecia-software-system.png"
+          src="/devtecia-method-studio-photo.png"
           alt="Ecosistema visual de interfaces, datos y arquitectura de software conectados"
           fill
           sizes="100vw"
@@ -350,5 +350,4 @@ export default function Home() {
     </main>
   );
 }
-
 

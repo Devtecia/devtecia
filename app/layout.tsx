@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     locale: "es_CO",
     images: [
       {
-        url: "/devtecia-software-system.png",
+        url: "/devtecia-software-studio-photo.png",
         width: 1280,
         height: 720,
         alt: "Devtecia — Productos digitales con dirección",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: "Devtecia | Productos digitales que mueven negocios",
     description:
       "Estrategia, diseño e ingeniería para productos digitales que deben crecer.",
-    images: ["/devtecia-software-system.png"],
+    images: ["/devtecia-software-studio-photo.png"],
   },
 };
 
