@@ -4,20 +4,21 @@ import { useState, type FormEvent } from 'react';
 import { TASK_PRIORITIES, type TaskErrors } from '../../../../../lib/admin/task-input';
 import type { BoardTask, TaskAssignee } from '../../../../../lib/admin/task-board';
 import type { ProjectStatus } from '../../../../../lib/admin/session-types';
-import { mutateTask } from '../task-actions';
+import { archiveTask, mutateTask } from '../task-actions';
 import TaskAttachments, { useTaskImageUploads } from './task-attachments';
 
 type Props = {
   projectId: string; statuses: ProjectStatus[]; assignees: TaskAssignee[];
   task?: BoardTask; initialStatus: string;
-  onSaved(): void; onPending(pending: boolean): void;
+  onSaved(): void; onDeleted(taskId: string): void; onPending(pending: boolean): void;
 };
-export default function TaskForm({ projectId, statuses, assignees, task, initialStatus, onSaved, onPending }: Props) {
+export default function TaskForm({ projectId, statuses, assignees, task, initialStatus, onSaved, onDeleted, onPending }: Props) {
   const [errors, setErrors] = useState<TaskErrors>({});
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(false);
   const [savedTaskId, setSavedTaskId] = useState<string>();
   const [saveUncertain, setSaveUncertain] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const attachments = useTaskImageUploads(task?.id);
   const busy = pending || attachments.processing || attachments.loading || saveUncertain;
   const hint = (field: keyof TaskErrors) => errors[field] ? <p className="field-error" id={`task-${field}-error`}>{errors[field]}</p> : null;
@@ -55,6 +56,23 @@ export default function TaskForm({ projectId, statuses, assignees, task, initial
       onPending(false);
     }
   }
+  async function remove() {
+    if (!task || busy) return;
+    setPending(true);
+    onPending(true);
+    setMessage('');
+    try {
+      const result = await archiveTask({ projectId, taskId: task.id, version: task.version });
+      if (result.ok) { onDeleted(task.id); return; }
+      setMessage(result.message ?? 'No pudimos eliminar la tarea. Intenta de nuevo.');
+    } catch {
+      setMessage('No pudimos eliminar la tarea. Revisa tu conexión e intenta de nuevo.');
+    } finally {
+      setPending(false);
+      onPending(false);
+    }
+  }
+  const canDelete = Boolean(task) && !savedTaskId;
   return (
     <form className="form-grid task-form" onSubmit={submit} noValidate aria-busy={pending}>
       <fieldset disabled={pending || Boolean(savedTaskId) || saveUncertain} className="task-fields">
@@ -116,7 +134,15 @@ export default function TaskForm({ projectId, statuses, assignees, task, initial
       {savedTaskId ? <p role="status" className="field-hint">La tarea ya está guardada. Este botón solo reintenta las imágenes pendientes.</p> : null}
       {message ? <p role="alert" className="form-message form-message--error">{message}</p> : null}
       <div className="form-actions">
-        <button className="button button--primary" type="submit" disabled={busy}>{pending ? 'Guardando…' : savedTaskId ? 'Reintentar imágenes' : task ? 'Guardar cambios' : 'Crear tarea'}</button>
+        {canDelete && !confirmingDelete ? <button className="button button--danger task-delete" type="button" disabled={busy} onClick={() => setConfirmingDelete(true)}>Eliminar tarea</button> : null}
+        {canDelete && confirmingDelete ? (
+          <div className="task-delete-confirm" role="group" aria-labelledby="task-delete-question">
+            <p id="task-delete-question">¿Eliminar esta tarea?</p>
+            <button className="button button--danger" type="button" disabled={busy} onClick={remove} autoFocus>{pending ? 'Eliminando…' : 'Sí, eliminar'}</button>
+            <button className="button" type="button" disabled={busy} onClick={() => setConfirmingDelete(false)}>Cancelar</button>
+          </div>
+        ) : null}
+        <button className="button button--primary" type="submit" disabled={busy || confirmingDelete}>{pending ? 'Guardando…' : savedTaskId ? 'Reintentar imágenes' : task ? 'Guardar cambios' : 'Crear tarea'}</button>
       </div>
     </form>
   );

@@ -10,7 +10,7 @@ import TaskForm from './task-form';
 
 type Props = { projectId: string; projectKey: string; statuses: ProjectStatus[]; tasks: BoardTask[]; assignees: TaskAssignee[]; query: string };
 type Editor = { task?: BoardTask; status: string };
-export default function KanbanBoard({ projectId, projectKey, statuses, tasks, assignees, query }: Props) {
+export default function KanbanBoard({ projectId, projectKey, statuses, tasks: serverTasks, assignees, query }: Props) {
   const router = useRouter();
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all');
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -19,9 +19,11 @@ export default function KanbanBoard({ projectId, projectKey, statuses, tasks, as
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [dragId, setDragId] = useState<string | null>(null);
+  const [removed, setRemoved] = useState<ReadonlySet<string>>(() => new Set());
   const dialog = useRef<HTMLDialogElement>(null);
   const moving = useRef(false);
   const busy = pending || formPending;
+  const tasks = removed.size ? serverTasks.filter(task => !removed.has(task.id)) : serverTasks;
   const visible = filterTasks(tasks, query, priority, projectKey);
   useEffect(() => {
     if (!editor) return;
@@ -125,7 +127,8 @@ export default function KanbanBoard({ projectId, projectKey, statuses, tasks, as
           <button className="button" disabled={formPending} onClick={close} aria-label="Cerrar tarea">Cerrar</button>
         </header>
         {editor ? <TaskForm projectId={projectId} statuses={statuses} assignees={assignees} task={editor.task} initialStatus={editor.status}
-          onPending={setFormPending} onSaved={() => { setEditor(null); setNotice('Tarea guardada.'); router.refresh(); }} /> : null}
+          onPending={setFormPending} onSaved={() => { setEditor(null); setNotice('Tarea guardada.'); router.refresh(); }}
+          onDeleted={taskId => { setRemoved(current => new Set(current).add(taskId)); setEditor(null); setNotice('Tarea eliminada.'); router.refresh(); }} /> : null}
       </dialog>
     </>
   );

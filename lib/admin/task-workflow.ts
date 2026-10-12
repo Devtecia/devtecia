@@ -1,4 +1,4 @@
-import { parseTaskMutation, type TaskErrors } from './task-input';
+import { isUuid, parseTaskMutation, type TaskErrors } from './task-input';
 
 type Project = { id: string; key: string; statuses: { key: string }[] };
 type Task = { id: string; project_id: string; status: string; version: number };
@@ -54,6 +54,34 @@ export async function executeTaskMutation(raw: unknown, port: TaskMutationPort):
     }
     const { error, data } = await port.rpc(name, args);
     return error ? { ok: false, message: databaseMessage(error.code) } : { ok: true, projectKey: project.key, taskId: data?.id ?? (input.kind !== 'create' ? input.taskId : undefined) };
+  } catch {
+    return { ok: false, message: 'No pudimos conectar con el tablero. Intenta de nuevo.' };
+  }
+}
+
+export type TaskArchivePort = Pick<TaskMutationPort, 'active' | 'project' | 'task'> & {
+  /** Archives the task only if it is still unarchived and at the expected version. */
+  archive(id: string, version: number): Promise<{ error: { code?: string } | null; archived: boolean }>;
+};
+export type TaskArchiveResult = { ok: boolean; message?: string; projectKey?: string; taskId?: string };
+
+/** Soft-deletes a task by setting archived_at. Lookups and writes must use the requesting user's session. */
+export async function executeTaskArchive(raw: unknown, port: TaskArchivePort): Promise<TaskArchiveResult> {
+  const input = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  const { projectId, taskId, version } = input;
+  if (!isUuid(projectId) || !isUuid(taskId) || typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
+    return { ok: false, message: 'No pudimos identificar la tarea. Recarga el tablero.' };
+  }
+  try {
+    if (!await port.active()) return { ok: false, message: 'Tu sesión venció. Vuelve a ingresar.' };
+    const project = await port.project(projectId);
+    if (!project) return { ok: false, message: databaseMessage('P0002') };
+    const task = await port.task(taskId);
+    if (!task || task.project_id !== project.id) return { ok: false, message: databaseMessage('P0002') };
+    if (task.version !== version) return { ok: false, message: conflict };
+    const { error, archived } = await port.archive(taskId, version);
+    if (error) return { ok: false, message: error.code === '42501' || error.code === '40001' ? databaseMessage(error.code) : 'No pudimos eliminar la tarea. Intenta de nuevo.' };
+    return archived ? { ok: true, projectKey: project.key, taskId } : { ok: false, message: conflict };
   } catch {
     return { ok: false, message: 'No pudimos conectar con el tablero. Intenta de nuevo.' };
   }

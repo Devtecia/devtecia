@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { executeTaskMutation, type TaskMutationPort } from '../lib/admin/task-workflow';
+import { executeTaskArchive, executeTaskMutation, type TaskArchivePort, type TaskMutationPort } from '../lib/admin/task-workflow';
 const projectId = '11111111-1111-4111-8111-111111111111';
 const taskId = '22222222-2222-4222-8222-222222222222';
 const otherId = '33333333-3333-4333-8333-333333333333';
@@ -65,4 +65,47 @@ test('database conflicts and transport errors return safe errors', async () => {
   const result = await executeTaskMutation({ kind: 'create', projectId, fields }, port);
   assert.equal(result.ok, false);
   assert.doesNotMatch(result.message ?? '', /secret/);
+});
+function archiveFake(overrides: Partial<TaskArchivePort> = {}) {
+  const calls: [string, number][] = [];
+  const port: TaskArchivePort = {
+    active: async () => true,
+    project: async () => ({ id: projectId, key: 'WEB', statuses: [{ key: 'todo' }] }),
+    task: async id => ({ id, project_id: projectId, status: 'todo', version: 3 }),
+    archive: async (id, version) => { calls.push([id, version]); return { error: null, archived: true }; },
+    ...overrides,
+  };
+  return { port, calls };
+}
+test('archive soft-deletes an unarchived task with its expected version', async () => {
+  const { port, calls } = archiveFake();
+  const result = await executeTaskArchive({ projectId, taskId, version: 3 }, port);
+  assert.deepEqual(result, { ok: true, projectKey: 'WEB', taskId });
+  assert.deepEqual(calls, [[taskId, 3]]);
+});
+test('archive rejects invalid input, inactive session, missing or foreign tasks and stale versions without writing', async () => {
+  const scenarios: [Partial<TaskArchivePort>, object][] = [
+    [{}, { taskId: 'not-a-uuid' }], [{}, { projectId: 42 }], [{}, { version: 0 }], [{}, { version: '3' }],
+    [{ active: async () => false }, {}], [{ project: async () => null }, {}], [{ task: async () => null }, {}],
+    [{ task: async () => ({ id: taskId, project_id: otherId, status: 'todo', version: 3 }) }, {}],
+    [{}, { version: 2 }],
+  ];
+  for (const [override, raw] of scenarios) {
+    const { port, calls } = archiveFake(override);
+    const result = await executeTaskArchive({ projectId, taskId, version: 3, ...raw }, port);
+    assert.equal(result.ok, false);
+    assert.ok(result.message);
+    assert.equal(calls.length, 0);
+  }
+});
+test('archive reports concurrent changes and hides database errors', async () => {
+  const lost = await executeTaskArchive({ projectId, taskId, version: 3 }, archiveFake({ archive: async () => ({ error: null, archived: false }) }).port);
+  assert.equal(lost.ok, false);
+  assert.match(lost.message ?? '', /actualizada/);
+  const denied = await executeTaskArchive({ projectId, taskId, version: 3 }, archiveFake({ archive: async () => ({ error: { code: '42501' }, archived: false }) }).port);
+  assert.equal(denied.ok, false);
+  assert.match(denied.message ?? '', /sesión/);
+  const thrown = await executeTaskArchive({ projectId, taskId, version: 3 }, archiveFake({ task: async () => { throw new Error('secret database detail'); } }).port);
+  assert.equal(thrown.ok, false);
+  assert.doesNotMatch(thrown.message ?? '', /secret/);
 });
