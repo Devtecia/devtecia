@@ -1,17 +1,9 @@
 import 'server-only';
 import { cache } from 'react';
 import { createClient } from '../supabase/server';
+import type { AdminProfile } from './session-types';
 
-export type AdminRole = 'admin' | 'member';
-export type AdminProfile = {
-  id: string;
-  name: string;
-  email: string;
-  initials: string;
-  color: string;
-  role: AdminRole;
-  active: boolean;
-};
+export type { AdminProfile, AdminRole } from './session-types';
 
 export type AdminSession =
   | { status: 'signed-out' }
