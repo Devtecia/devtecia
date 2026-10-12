@@ -54,3 +54,33 @@ Later: my work view, reports and focus score, checklist, subtasks, dependencies,
   - Initially pending: remote migration and admin profile; completed in the follow-up entry below. Remaining: live login and shell checks at 360px and desktop.
 - 2026-10-11 remote migration follow-up: user ran `supabase/migrations/0001_admin_kanban.sql` in the configured Supabase SQL Editor. Verified the `profiles`, `projects`, `project_members`, and `tasks` tables are available. Existing Auth user was present with an active member profile; ran `node scripts/create-admin.mjs ...` without `--reset-password`, which upserts the profile only and does not modify Auth credentials. Read-after-write confirmed role `admin`, active `true`. Password unchanged. Live login and shell verification remain pending.
 - Next step: user signs in at `/admin/login`; verify live login/shell, then continue T4 board.
+
+## Functional board continuation (2026-10-12)
+Authorized scope: T4 and the editable task drawer portion of T5 only. No project settings, status editor, task archive/delete, remote database changes, or deployment in this unit.
+
+Delivery strategy: stacked-to-main (cached user choice), no push or PR in this unit. Forecast: approximately 900 authored changed lines; cohesive slices are task validation/workflow with tests, then board/forms with tests. The 400 line heuristic is advisory, not a reason to compress code or omit checks.
+
+- [x] T4a Validate task fields and authorize create/update/move against the user-bound database; preserve optimistic locking and map safe errors. Route: delegated direct (multi-file logic and write preparation).
+- [ ] T4b Render persisted cards, search/priority filter, native drag/drop and keyboard/touch move/reorder using full column ordering. Route: delegated direct (multi-file UI).
+- [ ] T5a Accessible create/edit task dialog for all fields, pending and error states, refresh layout counts after success. Route: delegated direct (multi-file UI).
+- [ ] T7a Focused RED then GREEN tests, admin regression, typecheck, build, diff checks; independent parent verification and work-unit commits pending.
+
+Acceptance checks: malformed ids/versions/fields rejected server side; active session/project/status/assignee checked before RPC; stale versions friendly; no silently empty database failures; filtered reorder uses all column tasks; focus/escape/restore and touch controls; actual persistence only through existing RPCs. No network in tests.
+Verification commands: cached tsx runner for tests/admin-task-input.test.ts, tests/admin-task-workflow.test.ts, tests/admin-kanban-board.test.ts; admin-*.test.ts regression; npx tsc --noEmit; npm run build; git diff --check. RDD off, no native review.
+Remaining original scope: project/status settings, archive/delete, remaining T6 user-management scope, authenticated browser verification. Existing invitations were implemented separately; T6 is not reclassified complete here.
+
+### Functional board verification
+- RED: focused runner initially failed all 3 test modules with missing task-input/task-workflow/task-board before implementation. Sandbox IPC EPERM required approved escalated local runner; not counted as behavioral RED.
+- GREEN: focused tests 11/11; admin regression 68/68; npx tsc --noEmit exit 0; npm run build exit 0 (dynamic /admin/projects/[key]); git diff --check clean.
+- Existing RPCs now receive validated user-bound create/update/move calls. Task fields, inactive-assignee rejection, full-column reorder anchors, stale versions, friendly database and transport errors covered by fake-port tests. Native dialog/controls covered structurally, not browser interaction tests.
+- Full task pagination prevents database row limits from silently truncating column reorder anchors; label length capped at SQL's 40 characters to avoid silent truncation.
+- Runtime harness: no authenticated browser or hosted database mutation performed; those checks remain pending with parent. No new schema or dependencies, landing unchanged. RDD off.
+- Work-unit commit identities: pending parent independent verification and commit; T7a remains unchecked until that handoff completes. Recommended boundaries: task validation/workflow+tests, then functional board/forms+tests; each must keep corresponding proof/docs.
+- Rollback: remove task-action/workflow/input/board/form modules and tests, restore project page/data loading and appended task CSS only; unrelated admin, Marketing and Supabase configuration unchanged.
+- Next step: independent verification, record commits; later project/status settings and archive/delete remain T5 scope.
+
+### Domain work-unit checkpoint
+- Task input/workflow and their tests are the first coherent work unit. UI integration is implemented in the working tree and reserved for the next work-unit commit; T4b/T5a checkboxes close with that commit.
+- Independent audit reported no supported severe/blocking findings and focused 11/11 passing; parent spot check reran focused 11/11 passing. These checks cover the complete working-tree implementation.
+- Native risk assessment was high/unassessable due to untracked inventory; independent audit completed. RDD is off, so no native review was started.
+- Actual complete feature diff before commit evidence: 644 authored changed lines. No PR or remote delivery is created by these local work units.
