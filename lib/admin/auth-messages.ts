@@ -1,5 +1,5 @@
 export type LoginState = { error?: string; email?: string };
-export type LoginNotice = 'inactive' | 'signed-out';
+export type LoginNotice = 'inactive' | 'signed-out' | 'invite-error';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -20,8 +20,10 @@ export function loginErrorMessage(error: { code?: string; status?: number }): st
 
 export const INACTIVE_MESSAGE = 'Tu cuenta está desactivada. Pide acceso a un administrador.';
 export const PROFILE_ERROR_MESSAGE = 'No pudimos verificar tu cuenta. Intenta de nuevo en unos minutos.';
+export const INVITE_ERROR_MESSAGE = 'El enlace de invitación no es válido o ya venció. Pide una nueva invitación.';
 
 export const noticeMessages: Record<LoginNotice, string> = {
   inactive: INACTIVE_MESSAGE,
   'signed-out': 'Cerraste sesión.',
+  'invite-error': INVITE_ERROR_MESSAGE,
 };

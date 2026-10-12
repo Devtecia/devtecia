@@ -15,11 +15,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   const params = await searchParams;
   const next = safeAdminPath(first(params.next));
   const notice: LoginNotice | undefined =
-    first(params.error) === 'inactive' ? 'inactive' : first(params.status) === 'signed-out' ? 'signed-out' : undefined;
+    first(params.error) === 'inactive' ? 'inactive' : first(params.error) === 'invite' ? 'invite-error' : first(params.status) === 'signed-out' ? 'signed-out' : undefined;
+  const setupPassword = first(params.setup) === 'invite';
 
   // A missing profile table or env var must not take the login page down.
   const session = await getAdminSession().catch(() => ({ status: 'signed-out' as const }));
-  if (session.status === 'active') redirect(next);
+  if (session.status === 'active' && !setupPassword) redirect(next);
 
-  return <LoginForm action={signIn} next={next} notice={session.status === 'inactive' ? 'inactive' : notice} />;
+  return <LoginForm action={signIn} next={next} notice={session.status === 'inactive' ? 'inactive' : notice} setupPassword={setupPassword && session.status === 'active'} />;
 }
