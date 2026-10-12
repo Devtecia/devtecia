@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Nuevo proyecto' };
 export default function NewProjectPage() {
   return (
     <>
-      <Topbar crumbs={[{ label: 'Proyectos', href: '/admin' }, { label: 'Nuevo proyecto' }]} />
+      <Topbar crumbs={[{ label: 'Proyectos', href: '/admin/projects' }, { label: 'Nuevo proyecto' }]} />
       <main className="page page--narrow">
         <header className="page-head">
           <p className="micro-label">Proyectos</p>

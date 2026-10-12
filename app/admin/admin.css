@@ -440,3 +440,15 @@
   .admin .task-dialog { padding: 16px; }
   .admin .board-toolbar > .button { margin-left: 0; }
 }
+
+.admin .directory-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+.admin .directory-head h1 { font-size: 30px; line-height: 36px; text-wrap: balance; }
+.admin .directory-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 24px; }
+.admin .directory-filters .field { flex: 1; min-width: 160px; }
+.admin .project-directory { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 24px; }
+.admin .project-directory-card { border: 1px solid var(--line); border-radius: 12px; padding: 24px; background: var(--paper-bright); }
+.admin .project-directory-card h2 { font-size: 20px; line-height: 28px; margin: 16px 0 8px; text-wrap: balance; }
+.admin .project-directory-card h2 a { color: inherit; text-decoration: none; }
+.admin .project-directory-card h2 a:hover { text-decoration: underline; }
+.admin .directory-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 32px; }
+@media (max-width: 640px) { .admin .directory-head { align-items: start; flex-direction: column; } }

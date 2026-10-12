@@ -2,17 +2,16 @@
 
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import type { AdminProfile, ProjectSummary } from '../../../lib/admin/session-types';
+import type { AdminProfile } from '../../../lib/admin/session-types';
 import AdminSidebar from './admin-sidebar';
 
 type AdminShellProps = {
   profile: AdminProfile;
-  projects: ProjectSummary[];
   signOut: () => Promise<void>;
   children: React.ReactNode;
 };
 
-export default function AdminShell({ profile, projects, signOut, children }: AdminShellProps) {
+export default function AdminShell({ profile, signOut, children }: AdminShellProps) {
   const pathname = usePathname() ?? '/admin';
   const [open, setOpen] = useState(false);
 
@@ -48,7 +47,7 @@ export default function AdminShell({ profile, projects, signOut, children }: Adm
         </button>
       </header>
       <aside id="admin-sidebar" className="sidebar">
-        <AdminSidebar profile={profile} projects={projects} pathname={pathname} signOut={signOut} />
+        <AdminSidebar profile={profile} pathname={pathname} signOut={signOut} />
       </aside>
       <button className="sidebar-scrim" type="button" tabIndex={-1} aria-hidden="true" onClick={() => setOpen(false)} />
       <div id="admin-main" className="workspace">{children}</div>

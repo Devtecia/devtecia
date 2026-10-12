@@ -65,3 +65,17 @@ export const getProjectByKey = cache(async (key: string): Promise<ProjectDetail 
   for (const { status } of tasks ?? []) statusCounts[status] = (statusCounts[status] ?? 0) + 1;
   return { ...project, statusCounts, tasks: tasks ?? [], assignees: assignees ?? [] };
 });
+
+/** Exact count and a bounded page; the application shell does not fetch projects. */
+export async function getProjectDirectory(query: import('./project-directory').DirectoryQuery) {
+  const { PROJECT_PAGE_SIZE, directoryPattern } = await import('./project-directory');
+  const supabase = await createClient();
+  let request = supabase.from('projects').select('id, key, name, color, client, tasks(count)', { count: 'exact' })
+    .is('archived_at', null).is('tasks.archived_at', null);
+  if (query.q) request = request.ilike('name', directoryPattern(query.q));
+  if (query.client) request = request.ilike('client', directoryPattern(query.client));
+  request = query.sort === 'newest' ? request.order('created_at', { ascending: false }) : request.order('name', { ascending: true });
+  const { data, count, error } = await request.order('id').range(query.offset, query.offset + PROJECT_PAGE_SIZE - 1).returns<ProjectRow[]>();
+  if (error) throw new Error('Could not load the project directory.');
+  return { projects: (data ?? []).map(({ tasks, ...project }) => ({ ...project, taskCount: tasks[0]?.count ?? 0 })), total: count ?? 0 };
+}

@@ -15,17 +15,14 @@ const projects = [
 ];
 const signOut = async () => {};
 const sidebar = (role: AdminProfile['role'], pathname = '/admin/projects/WEB') =>
-  renderToStaticMarkup(createElement(AdminSidebar, { profile: profile(role), projects, pathname, signOut }));
+  renderToStaticMarkup(createElement(AdminSidebar, { profile: profile(role), pathname, signOut }));
 
-test('sidebar lists projects with key chips, counts and the current page', () => {
+test('sidebar links one directory rather than enumerating projects', () => {
   const html = sidebar('member');
-  assert.match(html, /Devtecia Admin/);
-  assert.match(html, /<a[^>]*href="\/admin\/projects\/WEB"[^>]*aria-current="page"|<a[^>]*aria-current="page"[^>]*href="\/admin\/projects\/WEB"/);
-  assert.match(html, />WEB</);
-  assert.match(html, />12</);
-  assert.match(html, /href="\/admin\/projects\/OPS"/);
-  assert.doesNotMatch(html, /href="\/admin\/projects\/OPS"[^>]*aria-current/);
-  assert.match(html, /href="\/admin\/projects\/new"/);
+  assert.match(html, /href="\/admin\/projects"[^>]*aria-current="page"/);
+  assert.doesNotMatch(html, /href="\/admin\/projects\/(WEB|OPS)"/);
+  assert.match(sidebar('admin', '/admin/projects/new'), /href="\/admin\/projects"[^>]*aria-current="page"/);
+  assert.match(html, /href="\/admin\/marketing"/);
 });
 
 test('only admins see the users entry', () => {

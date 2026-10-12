@@ -24,7 +24,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pa
   return (
     <>
       <Topbar
-        crumbs={[{ label: 'Proyectos', href: '/admin' }, { label: project.name }]}
+        crumbs={[{ label: 'Proyectos', href: '/admin/projects' }, { label: project.name }]}
         search={{ action: `/admin/projects/${project.key}`, defaultValue: typeof query === 'string' ? query : undefined }}
       />
       <main className="page">

@@ -32,8 +32,8 @@ test('normalizes and validates brand details', () => {
 });
 
 test('shows the Marketing navigation item to every active profile role', () => {
-  const adminHtml = renderToStaticMarkup(createElement(AdminSidebar, { profile: { ...profile, role: 'admin' }, projects: [], pathname: '/admin/marketing', signOut }));
-  const memberHtml = renderToStaticMarkup(createElement(AdminSidebar, { profile, projects: [], pathname: '/admin/marketing/clients/c1', signOut }));
+  const adminHtml = renderToStaticMarkup(createElement(AdminSidebar, { profile: { ...profile, role: 'admin' }, pathname: '/admin/marketing', signOut }));
+  const memberHtml = renderToStaticMarkup(createElement(AdminSidebar, { profile, pathname: '/admin/marketing/clients/c1', signOut }));
   assert.match(adminHtml, /href="\/admin\/marketing"[^>]*aria-current="page"|aria-current="page"[^>]*href="\/admin\/marketing"/);
   assert.match(adminHtml, />Marketing</);
   assert.match(memberHtml, /href="\/admin\/marketing"[^>]*aria-current="page"|aria-current="page"[^>]*href="\/admin\/marketing"/);
