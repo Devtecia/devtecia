@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -7,6 +8,21 @@ import LoginForm from '../app/admin/login/login-form';
 import { isValidInvitationEmail, inviteCallbackUrl, inviteTeamMember } from '../lib/admin/invitations';
 
 const activeAdmin = { status: 'active' as const, profile: { role: 'admin' as const } };
+
+test('refreshes the team route after a successful invitation', () => {
+  const source = readFileSync(new URL('../app/admin/(app)/users/actions.ts', import.meta.url), 'utf8');
+  assert.match(source, /import\s*\{\s*revalidatePath\s*\}\s*from\s*['"]next\/cache['"]/);
+  assert.match(source, /if\s*\(result\.success\)\s*revalidatePath\(['"]\/admin\/users['"]\)/);
+});
+
+test('loads every Auth user page before classifying profile confirmation status', () => {
+  const source = readFileSync(new URL('../app/admin/(app)/users/page.tsx', import.meta.url), 'utf8');
+  assert.match(source, /async function listAllAuthUsers/);
+  assert.match(source, /listUsers\(\{ page, perPage \}\)/);
+  assert.match(source, /page\s*\+=\s*1/);
+  assert.match(source, /data\.users\.length\s*<\s*perPage/);
+  assert.match(source, /listAllAuthUsers\(admin\)/);
+});
 
 test('validates email addresses without accepting malformed input', () => {
   assert.equal(isValidInvitationEmail('ana@example.com'), true);

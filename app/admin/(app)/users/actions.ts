@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { getAdminSession } from '../../../../lib/admin/session';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { inviteCallbackUrl, inviteTeamMember, type InviteState } from '../../../../lib/admin/invitations';
@@ -23,5 +24,7 @@ export async function inviteMember(_previous: InviteState, formData: FormData): 
     return { error: 'No pudimos preparar la invitación. Revisa la configuración del panel.' };
   }
 
-  return inviteTeamMember(session, formData.get('email'), redirectTo, createAdminClient);
+  const result = await inviteTeamMember(session, formData.get('email'), redirectTo, createAdminClient);
+  if (result.success) revalidatePath('/admin/users');
+  return result;
 }
