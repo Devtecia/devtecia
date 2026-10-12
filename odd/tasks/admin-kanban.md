@@ -29,8 +29,8 @@ Later: my work view, reports and focus score, checklist, subtasks, dependencies,
 
 ## Tasks
 - [x] T0 Supabase project created by the user; env vars set (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Done 2026-10-11; URL corrected by the parent and connectivity verified (signups disabled).
-- [x] T1 Schema and SQL migrations: profiles, projects, project_members, tasks, RLS policies, SQL functions (create task with number, move task, update with version check, remove status). Route: delegated writer. Commit 465f3bc. Remote apply pending (parent coordinates).
-- [x] T2 Auth: Supabase SSR clients, proxy guard, `/admin/login` page, logout, first admin bootstrap. Route: delegated writer. Commit 6dd1662. Live sign in pending migration and first admin.
+- [x] T1 Schema and SQL migrations: profiles, projects, project_members, tasks, RLS policies, SQL functions (create task with number, move task, update with version check, remove status). Route: delegated writer. Commit 465f3bc. Applied remotely 2026-10-11; all four tables verified.
+- [x] T2 Auth: Supabase SSR clients, proxy guard, `/admin/login` page, logout, first admin bootstrap. Route: delegated writer. Commit 6dd1662. Existing user promoted to active admin; live sign-in not yet verified.
 - [x] T3 Admin shell: layout, sidebar with projects, topbar with search, design tokens scoped to admin. Route: delegated writer. Commit ce7f6d4. Includes a minimal create project form (not assigned to any other task). Visual check of the signed in shell pending.
 - [ ] T4 Board: columns, cards, drag and drop, priority filter, create task.
 - [ ] T5 Task drawer and project settings with statuses editor.
@@ -51,5 +51,6 @@ Later: my work view, reports and focus score, checklist, subtasks, dependencies,
   - Checks: `npx tsx --test tests/*.test.ts` 52/52; `node --test tests/contact.test.mjs` 8/8; `npx tsc --noEmit` exit 0; `git diff --check` clean; `npm run build` ok (admin routes dynamic, Proxy listed).
   - Dev server: `/admin`, `/admin/users`, `/admin/projects/new` 307 to `/admin/login` (with `next` for deep links); `/admin/login` 200 with noindex and title "Ingresar | Devtecia Admin"; `/`, `/en`, `/hablemos` 200; landing CSS has no admin rules.
   - Service role key referenced only in `lib/supabase/admin.ts`, `scripts/create-admin.mjs` and `.env.example` (empty).
-  - Pending: apply migration remotely, run `node scripts/create-admin.mjs`, then live login and shell checks at 360px and desktop.
-- Next step: apply the migration, create the first admin, then T4 board.
+  - Initially pending: remote migration and admin profile; completed in the follow-up entry below. Remaining: live login and shell checks at 360px and desktop.
+- 2026-10-11 remote migration follow-up: user ran `supabase/migrations/0001_admin_kanban.sql` in the configured Supabase SQL Editor. Verified the `profiles`, `projects`, `project_members`, and `tasks` tables are available. Existing Auth user was present with an active member profile; ran `node scripts/create-admin.mjs ...` without `--reset-password`, which upserts the profile only and does not modify Auth credentials. Read-after-write confirmed role `admin`, active `true`. Password unchanged. Live login and shell verification remain pending.
+- Next step: user signs in at `/admin/login`; verify live login/shell, then continue T4 board.
