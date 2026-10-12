@@ -1,6 +1,8 @@
 export const MAX_IMAGE_BYTES = 400 * 1024;
 export const MAX_ORIGINAL_BYTES = 20 * 1024 * 1024;
 export const MAX_IMAGE_PIXELS = 40_000_000;
+/** The browser uploads at most 1600x1600 WebP; 4x headroom still bounds server decoding cost. */
+export const MAX_SERVER_INPUT_PIXELS = 1600 * 1600 * 4;
 export const MAX_IMAGE_EDGE = 1600;
 export const MAX_TASK_IMAGES = 5;
 export const TASK_IMAGE_BUCKET = 'task-images';

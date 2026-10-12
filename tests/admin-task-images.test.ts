@@ -28,6 +28,13 @@ test('refuses decompression-sized images and animated WebP chunks', async () => 
   animated.write('RIFF', 0); animated.write('WEBP', 8); animated.write('VP8X', 12); animated.writeUInt32LE(10, 16); animated[20] = 2;
   await assert.rejects(processTaskImage(animated));
 });
+
+test('server input pixel budget fits browser output instead of raw originals', async () => {
+  const { MAX_SERVER_INPUT_PIXELS } = await import('../lib/admin/task-images');
+  assert.equal(MAX_SERVER_INPUT_PIXELS, 1600 * 1600 * 4);
+  const oversized = await sharp({ create: { width: 4000, height: 3000, channels: 3, background: 'white' } }).png().toBuffer();
+  await assert.rejects(processTaskImage(oversized));
+});
 test('reduces dense images rather than storing an oversized output', async () => {
   const { randomBytes } = await import('node:crypto');
   const source = await sharp(randomBytes(1600 * 1600 * 3), { raw: { width: 1600, height: 1600, channels: 3 } }).png().toBuffer();

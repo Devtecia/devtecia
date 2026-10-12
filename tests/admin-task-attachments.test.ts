@@ -8,7 +8,8 @@ function fake(overrides: Partial<AttachmentPort> = {}) {
   const calls: string[] = [];
   const port: AttachmentPort = {
     authorize: async () => ({ userId: imageId, projectId }),
-    process: async () => ({ bytes: Buffer.from('webp'), width: 4, height: 4, byteSize: 4 }),
+    hasSlot: async () => { calls.push('slot'); return true; },
+    process: async () => { calls.push('process'); return { bytes: Buffer.from('webp'), width: 4, height: 4, byteSize: 4 }; },
     reserve: async () => { calls.push('reserve'); return { id: imageId, objectKey: `${projectId}/${taskId}/${imageId}.webp` }; },
     upload: async () => { calls.push('upload'); },
     complete: async () => { calls.push('complete'); },
@@ -27,14 +28,14 @@ test('unauthorized task upload never processes or writes', async () => {
 test('upload reserves before object creation and completes metadata', async () => {
   const { port, calls } = fake();
   assert.equal((await uploadTaskAttachment(taskId, Buffer.from('x'), port)).ok, true);
-  assert.deepEqual(calls, ['reserve', 'upload', 'complete']);
+  assert.deepEqual(calls, ['slot', 'process', 'reserve', 'upload', 'complete']);
 });
 test('metadata failure deletes orphan before releasing reservation', async () => {
   const { port, calls } = fake({ complete: async () => { throw Error('secret'); } });
   const result = await uploadTaskAttachment(taskId, Buffer.from('x'), port);
   assert.equal(result.ok, false);
   assert.doesNotMatch(result.message ?? '', /secret/);
-  assert.deepEqual(calls, ['reserve', 'upload', 'abort', 'remove', 'cancel']);
+  assert.deepEqual(calls, ['slot', 'process', 'reserve', 'upload', 'abort', 'remove', 'cancel']);
 });
 test('failed orphan cleanup retains reservation rather than granting another slot', async () => {
   const { port, calls } = fake({ complete: async () => { throw Error('db'); }, remove: async () => { calls.push('remove'); throw Error('storage'); } });
@@ -45,7 +46,40 @@ test('failed orphan cleanup retains reservation rather than granting another slo
 test('uncertain completion that committed never removes the saved image', async () => {
   const { port, calls } = fake({ complete: async () => { throw Error('response lost'); }, abort: async () => false });
   assert.equal((await uploadTaskAttachment(taskId, Buffer.from('x'), port)).ok, true);
-  assert.deepEqual(calls, ['reserve', 'upload']);
+  assert.deepEqual(calls, ['slot', 'process', 'reserve', 'upload']);
+});
+
+test('full task is refused before any image processing or reservation', async () => {
+  const { port, calls } = fake({ hasSlot: async () => { calls.push('slot'); return false; } });
+  const result = await uploadTaskAttachment(taskId, Buffer.from('x'), port);
+  assert.equal(result.ok, false);
+  assert.match(result.message ?? '', /5 imágenes/);
+  assert.deepEqual(calls, ['slot']);
+});
+
+test('failed slot check never processes or reserves', async () => {
+  const { port, calls } = fake({ hasSlot: async () => { calls.push('slot'); throw Error('db'); } });
+  assert.equal((await uploadTaskAttachment(taskId, Buffer.from('x'), port)).ok, false);
+  assert.deepEqual(calls, ['slot']);
+});
+
+test('migration expires stale reservations and gates storage reads on unarchived work', async () => {
+  const { readFileSync } = await import('node:fs');
+  const sql = readFileSync('supabase/migrations/0005_task_attachments.sql', 'utf8');
+  assert.match(sql, /where task_id=t.id and \(ready or \(not abandoned and created_at >= now\(\) - interval '15 minutes'\)\)\) >= 5/);
+  assert.match(sql, /create function public.release_stale_task_images\(p_task_id uuid\)/);
+  assert.match(sql, /revoke all on function public.release_stale_task_images\(uuid\) from public,anon,authenticated/);
+  assert.match(sql, /grant execute on function public.release_stale_task_images\(uuid\) to service_role/);
+  assert.match(sql, /a.created_at >= now\(\) - interval '15 minutes'/);
+  const policy = sql.slice(sql.indexOf('create policy task_image_objects_team_read'), sql.indexOf('create function'));
+  assert.match(policy, /t.archived_at is null and p.archived_at is null/);
+});
+
+test('server action sweeps stale reservations and checks slots before processing', async () => {
+  const { readFileSync } = await import('node:fs');
+  const action = readFileSync('app/admin/(app)/projects/attachment-actions.ts', 'utf8');
+  assert.match(action, /release_stale_task_images/);
+  assert.match(action, /hasSlot:/);
 });
 
 test('migration restricts image writes, reserves under lock and bounds storage', async () => {

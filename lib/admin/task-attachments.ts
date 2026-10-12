@@ -4,6 +4,8 @@ type Image = { bytes: Uint8Array; width: number; height: number; byteSize: numbe
 type Reservation = { id: string; objectKey: string };
 export type AttachmentPort = {
   authorize(taskId: string): Promise<{ userId: string; projectId: string } | null>;
+  /** Cheap pre-check so a full task does no image processing; reserve() still enforces the limit. */
+  hasSlot(taskId: string): Promise<boolean>;
   process(bytes: Uint8Array): Promise<Image>;
   reserve(taskId: string, userId: string): Promise<Reservation>;
   upload(key: string, bytes: Uint8Array): Promise<void>;
@@ -21,6 +23,7 @@ export async function uploadTaskAttachment(taskId: string, bytes: Uint8Array, po
     const context = await port.authorize(taskId);
     if (!context) return { ok: false, message: 'Tu sesión o esta tarea ya no están disponibles.' };
     userId = context.userId;
+    if (!await port.hasSlot(taskId)) return { ok: false, message: 'Esta tarea ya tiene 5 imágenes. Elimina una antes de subir otra.' };
     const image = await port.process(bytes);
     if (image.byteSize !== image.bytes.length || image.byteSize > MAX_IMAGE_BYTES || image.width > MAX_IMAGE_EDGE || image.height > MAX_IMAGE_EDGE) throw new Error('Invalid processed image.');
     reservation = await port.reserve(taskId, userId);

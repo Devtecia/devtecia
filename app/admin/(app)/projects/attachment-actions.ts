@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getAdminSession } from '../../../../lib/admin/session';
 import { processTaskImage } from '../../../../lib/admin/task-image-processor';
 import { uploadTaskAttachment } from '../../../../lib/admin/task-attachments';
-import { MAX_IMAGE_BYTES, TASK_IMAGE_BUCKET, type TaskAttachment } from '../../../../lib/admin/task-images';
+import { MAX_IMAGE_BYTES, MAX_TASK_IMAGES, TASK_IMAGE_BUCKET, type TaskAttachment } from '../../../../lib/admin/task-images';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 
@@ -26,6 +26,17 @@ export async function addTaskImage(taskId: string, form: FormData) {
       const context = await authorizedTask(id);
       if (context) admin = createAdminClient();
       return context;
+    },
+    hasSlot: async id => {
+      // Expire unfinished reservations first; their objects are removed best-effort and
+      // their rows are deleted by a later sweep once the object is gone.
+      const { data: stale, error: sweepError } = await admin.rpc('release_stale_task_images', { p_task_id: id });
+      if (sweepError) throw sweepError;
+      const keys = ((stale ?? []) as unknown[]).filter((key): key is string => typeof key === 'string');
+      if (keys.length) await admin.storage.from(TASK_IMAGE_BUCKET).remove(keys).catch(() => undefined);
+      const { count, error } = await admin.from('task_attachments').select('id', { count: 'exact', head: true }).eq('task_id', id).or('ready.eq.true,abandoned.eq.false');
+      if (error || count === null) throw error ?? new Error('Could not count images.');
+      return count < MAX_TASK_IMAGES;
     },
     process: processTaskImage,
     reserve: async (id, actor) => {
