@@ -14,6 +14,10 @@ export default function SiteHeader({ locale = 'es', page = 'home' }: { locale?: 
 
   useEffect(() => {
     if (!open) return;
+    // Keep the page behind the open mobile menu from scrolling.
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    root.style.overflow = 'hidden';
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false);
@@ -21,7 +25,10 @@ export default function SiteHeader({ locale = 'es', page = 'home' }: { locale?: 
       }
     };
     document.addEventListener('keydown', escape);
-    return () => document.removeEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('keydown', escape);
+      root.style.overflow = previousOverflow;
+    };
   }, [open]);
 
   // The contact page keeps the visitor focused: only the way back and the language.

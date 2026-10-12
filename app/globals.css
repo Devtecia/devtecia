@@ -223,7 +223,7 @@ section[id] { scroll-margin-top: 96px; }
 /* Choreography: only when JS enhances and motion is allowed */
 .flow-enhanced .receipt-paper { transition: transform 800ms var(--flow-ease), opacity 800ms var(--flow-ease), filter 800ms var(--flow-ease); }
 .flow-enhanced mark { background-size: 0% 100%; transition: background-size 600ms var(--flow-ease); }
-.flow-enhanced mark .field-marker { opacity: 0; transform: scale(0.4); transition: opacity 400ms var(--flow-ease), transform 500ms var(--flow-ease); }
+.flow-enhanced mark .field-marker { width: 0; margin-right: 0; overflow: hidden; opacity: 0; transform: scale(0.4); transition: width 500ms var(--flow-ease), margin 500ms var(--flow-ease), opacity 400ms var(--flow-ease), transform 500ms var(--flow-ease); }
 .flow-enhanced .scan-frame { transition: opacity 500ms var(--flow-ease), inset 700ms var(--flow-ease); }
 .flow-enhanced .ai-bot-mark { transition: box-shadow 600ms var(--flow-ease), transform 600ms var(--flow-ease); }
 .flow-enhanced .ai-bot-orbit { transition: opacity 400ms var(--flow-ease); }
@@ -246,7 +246,7 @@ section[id] { scroll-margin-top: 96px; }
 
 /* detect onwards: fields highlighted */
 .ai-flow:is([data-phase="detect"], [data-phase="extract"], [data-phase="done"]) mark { background-size: 100% 100%; }
-.ai-flow:is([data-phase="detect"], [data-phase="extract"], [data-phase="done"]) mark .field-marker { opacity: 1; transform: scale(1); }
+.ai-flow:is([data-phase="detect"], [data-phase="extract"], [data-phase="done"]) mark .field-marker { width: 16px; margin-right: 4px; opacity: 1; transform: scale(1); }
 .ai-flow[data-phase="detect"] [data-source="fecha"], .ai-flow[data-phase="detect"] [data-source="fecha"] .field-marker { transition-delay: 300ms; }
 .ai-flow[data-phase="detect"] [data-source="total"], .ai-flow[data-phase="detect"] [data-source="total"] .field-marker { transition-delay: 600ms; }
 .ai-flow[data-phase="detect"] .scan-frame { opacity: 0.4; inset: -4px; }
@@ -306,6 +306,7 @@ section[id] { scroll-margin-top: 96px; }
 }
 @media (max-width: 600px) {
   .ai-example { padding: 16px; gap: 24px; margin-top: 0; }
+  .ai-flow-timeline li { flex-direction: column; gap: 0; }
   .ai-flow-step { padding: 12px; }
 }
 .service-row { display: grid; grid-template-columns: 48px 1fr 1fr; gap: 32px; background: var(--mist); padding: 40px; border-radius: var(--radius-card); }
@@ -423,7 +424,7 @@ section[id] { scroll-margin-top: 96px; }
   .menu-toggle span { display: block; width: 24px; height: 2px; background: var(--graphite); transition: transform 700ms var(--ease); }
   .menu-toggle[aria-expanded="true"] span:first-child { transform: translateY(5px) rotate(45deg); }
   .menu-toggle[aria-expanded="true"] span:last-child { transform: translateY(-5px) rotate(-45deg); }
-  .site-menu { display: none; position: absolute; top: 80px; left: 0; right: 0; padding: 24px 32px 32px; background: var(--paper); }
+  .site-menu { display: none; position: fixed; top: 80px; bottom: 0; left: 0; right: 0; overflow-y: auto; overscroll-behavior: contain; padding: 24px 32px 32px; background: var(--paper); }
   .site-menu.is-open { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
   .site-menu > a:not(.button) { font-size: 18px; }
   .site-menu .language-switch { align-self: flex-start; }
