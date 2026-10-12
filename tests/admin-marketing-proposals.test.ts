@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ProposalWorkspace } from '../app/admin/(app)/marketing/proposal-workspace';
 import { validateProposalContent } from '../lib/admin/marketing/proposal-content';
 import { createGeminiProposalProvider } from '../lib/admin/marketing/gemini-provider';
-import { createNextProposal, transitionProposal, type MarketingProposal, type ProposalRepository } from '../lib/admin/marketing/proposal-workflow';
+import { createNextProposal, transitionProposal, type MarketingProposal, type ProposalGenerationContext, type ProposalRepository } from '../lib/admin/marketing/proposal-workflow';
 
 const claim = (value: string) => ({ value, basis: 'hypothesis' as const });
 
@@ -41,12 +41,17 @@ function validProposal() {
 }
 
 const scope = { clientId: 'client-a', brandId: 'brand-a', briefId: 'brief-a', audienceId: 'audience-a' };
-const context = { ...scope, client: { name: 'Café Aurora', website: 'https://aurora.example', summary: 'Café tostado local' }, brand: { name: 'Aurora', website: '', summary: '' }, audience: { segmentName: 'Cafeterías locales', geography: 'Bogotá', pains: ['Baja demanda entre semana'], objections: [], hypotheses: [] }, brief: { objective: 'Aumentar visitas', timeframe: 'Seis semanas', valueProposition: 'Café local', budgetRange: null, missingInformation: [] }, revisionFeedback: null };
+const context: ProposalGenerationContext = { ...scope, client: { name: 'Café Aurora', website: 'https://aurora.example', summary: 'Café tostado local' }, brand: { name: 'Aurora', website: '', summary: '' }, audience: { segmentName: 'Cafeterías locales', geography: 'Bogotá', pains: ['Baja demanda entre semana'], objections: [], hypotheses: [] }, brief: { objective: 'Aumentar visitas', timeframe: 'Seis semanas', valueProposition: 'Café local', budgetRange: null, missingInformation: [] }, previousProposal: null, revisionFeedback: null };
+type TestBudgetRange = { min: number; max: number; currency: string };
+function proposalWithBudget(budgetRange: TestBudgetRange | null): unknown {
+  const proposal = validProposal();
+  return { ...proposal, paidPromotion: { ...proposal.paidPromotion, budgetRange } };
+}
 
 class MemoryProposalRepository implements ProposalRepository {
   latest: MarketingProposal | null = null;
   saved: MarketingProposal[] = [];
-  context = context;
+  context: ProposalGenerationContext = context;
 
   async loadContext() { return this.context; }
   async getLatest() { return this.latest; }
@@ -88,6 +93,65 @@ test('missing credentials and invalid provider output persist no proposal', asyn
   const invalid = await createNextProposal({ repository: missing, provider: { providerName: 'fake', modelId: 'fake-model', isAvailable: () => true, generate: async () => ({ invalid: true }) }, scope });
   assert.deepEqual(invalid, { ok: false, kind: 'invalid_output' });
   assert.equal(missing.saved.length, 0);
+});
+
+test('rejects a generated budget when the brief provides no budget or the amount exceeds its range', async () => {
+  const noBudget = new MemoryProposalRepository();
+  const withUnrequestedBudget = proposalWithBudget({ min: 100, max: 200, currency: 'COP' });
+  const ungrounded = await createNextProposal({
+    repository: noBudget,
+    provider: { providerName: 'fake', modelId: 'fake-model', isAvailable: () => true, generate: async () => withUnrequestedBudget },
+    scope,
+  });
+  assert.deepEqual(ungrounded, { ok: false, kind: 'invalid_output' });
+  assert.equal(noBudget.saved.length, 0);
+
+  const bounded = new MemoryProposalRepository();
+  bounded.context = { ...context, brief: { ...context.brief, budgetRange: { min: 500, max: 1000, currency: 'COP' } } };
+  const overBudget = proposalWithBudget({ min: 1000, max: 1200, currency: 'COP' });
+  const outOfRange = await createNextProposal({
+    repository: bounded,
+    provider: { providerName: 'fake', modelId: 'fake-model', isAvailable: () => true, generate: async () => overBudget },
+    scope,
+  });
+  assert.deepEqual(outOfRange, { ok: false, kind: 'invalid_output' });
+  assert.equal(bounded.saved.length, 0);
+
+  const withinRange = new MemoryProposalRepository();
+  withinRange.context = { ...context, brief: { ...context.brief, budgetRange: { min: 500, max: 1000, currency: 'COP' } } };
+  const grounded = proposalWithBudget({ min: 500, max: 900, currency: 'COP' });
+  const accepted = await createNextProposal({
+    repository: withinRange,
+    provider: { providerName: 'fake', modelId: 'fake-model', isAvailable: () => true, generate: async () => grounded },
+    scope,
+  });
+  assert.equal(accepted.ok, true);
+  assert.equal(withinRange.saved.length, 1);
+});
+
+test('provides validated prior proposal content to the revision provider', async () => {
+  const repository = new MemoryProposalRepository();
+  const first = await createNextProposal({
+    repository,
+    provider: { providerName: 'fake', modelId: 'fake-model', isAvailable: () => true, generate: async () => validProposal() },
+    scope,
+  });
+  if (!first.ok) throw new Error('Expected the first proposal version.');
+  const submitted = transitionProposal(first.value, 'submit', { now: 't1', actorId: 'member-a' });
+  if (!submitted.ok) throw new Error('Expected the proposal to submit.');
+  const revision = transitionProposal(submitted.value, 'request_revision', { now: 't2', actorId: 'member-b', feedback: 'Mantén la promesa aprobada.' });
+  if (!revision.ok) throw new Error('Expected the proposal to request revision.');
+  repository.latest = revision.value;
+  repository.context = { ...context, revisionFeedback: 'Mantén la promesa aprobada.' };
+  const suppliedContext: { value: ProposalGenerationContext | null } = { value: null };
+  const next = await createNextProposal({
+    repository,
+    provider: { providerName: 'fake', modelId: 'fake-model', isAvailable: () => true, generate: async (input) => { suppliedContext.value = input; return validProposal(); } },
+    scope,
+  });
+  assert.equal(next.ok, true);
+  assert.deepEqual(suppliedContext.value?.previousProposal, validateProposalContent(first.value.content).ok ? first.value.content : null);
+  assert.equal(suppliedContext.value?.revisionFeedback, 'Mantén la promesa aprobada.');
 });
 
 test('enforces review transitions and creates an immutable next version after revision feedback', async () => {
@@ -146,6 +210,18 @@ test('renders explicit privacy disclosure, unavailable state, proposal version a
   assert.match(unavailable, /no está disponible/);
 });
 
+test('renders malformed historical proposal content safely without exposing review controls', () => {
+  const malformed = {
+    id: 'proposal-broken', clientId: scope.clientId, brandId: scope.brandId, briefId: scope.briefId, audienceId: scope.audienceId,
+    threadId: 'thread-a', version: 1, parentProposalId: null, parentVersion: null, status: 'draft', content: {}, sourceReferences: [],
+    generation: { provider: 'legacy', model: 'legacy', generatedAt: '2026-10-12T00:00:00.000Z' }, createdAt: '2026-10-12T00:00:00.000Z',
+    updatedAt: '2026-10-12T00:00:00.000Z', submittedAt: null, approvedAt: null, approvedBy: null,
+  } as unknown as MarketingProposal;
+  const html = renderToStaticMarkup(createElement(ProposalWorkspace, { scope, available: false, proposals: [malformed], reviews: [], generateAction: async () => ({}), transitionAction: async () => ({}) }));
+  assert.match(html, /estructura incompleta/);
+  assert.doesNotMatch(html, /Enviar a revisión/);
+});
+
 test('migration preserves shared active-member RLS, immutable review events and atomic scope checks', () => {
   const sql = readFileSync(new URL('../supabase/migrations/0004_marketing_proposals.sql', import.meta.url), 'utf8').toLowerCase();
   for (const table of ['marketing_proposal_threads', 'marketing_proposals', 'marketing_review_events']) {
@@ -160,6 +236,11 @@ test('migration preserves shared active-member RLS, immutable review events and 
   assert.match(sql, /p_audience_id uuid,[\s\S]*?where proposal\.id = p_proposal_id[\s\S]*?proposal\.audience_id = p_audience_id/);
   assert.match(sql, /v_actor uuid := auth\.uid\(\)/);
   assert.match(sql, /not public\.is_active_member\(\)/);
+  assert.match(sql, /create or replace function public\.is_marketing_proposal_content_valid/);
+  assert.match(sql, /if not public\.is_marketing_proposal_content_valid\(p_content\)/);
+  assert.match(sql, /invalid_proposal_content/);
+  assert.match(sql, /invalid_proposal_budget/);
+  assert.match(sql, /v_proposal_budget->>'max'\)::numeric > \(v_brief_budget->>'max'\)::numeric/);
   assert.doesNotMatch(sql, /owner_id/);
 });
 

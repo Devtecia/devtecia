@@ -99,6 +99,7 @@ function proposalRepository(supabase: Awaited<ReturnType<typeof createClient>>):
         brand: { name: brand.name, website: brand.website, summary: brand.summary },
         audience: { segmentName: audience.segment_name, geography: audience.geography, pains: audience.pains, objections: audience.objections, hypotheses: audience.hypotheses },
         brief: { objective: brief.objective, timeframe: brief.timeframe, valueProposition: brief.value_proposition, budgetRange: brief.budget_range, missingInformation: brief.missing_information },
+        previousProposal: null,
         revisionFeedback,
       } satisfies ProposalGenerationContext;
     },

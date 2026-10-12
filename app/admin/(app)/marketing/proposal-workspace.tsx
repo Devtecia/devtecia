@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { validateProposalContent } from '../../../../lib/admin/marketing/proposal-content';
 import type { MarketingProposal, ProposalReviewEvent, ProposalScope, ProposalStatus } from '../../../../lib/admin/marketing/proposal-workflow';
 
 export type ProposalActionState = { message?: string };
@@ -41,7 +42,7 @@ function GenerateProposalForm({ scope, available, latest, action }: { scope: Pro
       <h4>Versiones de propuesta</h4>
       <p>La propuesta es un borrador para revisión del equipo. No publica contenido ni activa campañas.</p>
       {available ? <>
-        <p className="marketing-privacy-notice">Al pulsar “Generar propuesta”, se enviarán a Google Gemini los datos del cliente, la marca, el público y el brief de campaña para elaborar una versión.</p>
+        <p className="marketing-privacy-notice">Al pulsar “Generar propuesta”, se enviarán a Google Gemini los datos del cliente, la marca, el público y el brief de campaña; al solicitar cambios, también se enviarán la versión anterior y los comentarios de revisión.</p>
         {!canGenerate ? <p className="marketing-meta">Para crear otra versión, primero solicita cambios o aprueba la versión actual.</p> : null}
         <form className="form-actions" action={formAction}>
           <ScopeFields scope={scope} />
@@ -92,16 +93,18 @@ function ProposalReviewControls({ scope, proposal, action }: { scope: ProposalSc
 
 function ProposalCard({ proposal, scope, reviews, transitionAction }: { proposal: MarketingProposal; scope: ProposalScope; reviews: ProposalReviewEvent[]; transitionAction: FormAction }) {
   const entries = reviews.filter(review => review.proposalId === proposal.id);
-  const content = proposal.content;
+  const validation = validateProposalContent(proposal.content);
+  const content = validation.ok ? validation.value : null;
   return (
     <article className="marketing-proposal-card">
       <header className="marketing-proposal-head">
         <div>
           <p className="micro-label">Versión {proposal.version}</p>
-          <h5>{content.campaignConcept.goal}</h5>
+          <h5>{content?.campaignConcept.goal ?? `Versión ${proposal.version} · contenido no disponible`}</h5>
         </div>
         <span className={`marketing-status marketing-status--${proposal.status}`}>{statusLabels[proposal.status]}</span>
       </header>
+      {content ? <>
       <p>{content.campaignConcept.coreMessage.value}</p>
       {proposal.parentVersion ? <p className="marketing-meta">Deriva de la versión {proposal.parentVersion}.</p> : null}
       <details className="marketing-proposal-details">
@@ -124,6 +127,7 @@ function ProposalCard({ proposal, scope, reviews, transitionAction }: { proposal
         {content.risksAndOpenQuestions.assumptionsToConfirm.length ? <section><h6>Supuestos para confirmar</h6><ul>{content.risksAndOpenQuestions.assumptionsToConfirm.map((item, index) => <li key={index}>{item}</li>)}</ul></section> : null}
       </details>
       <ProposalReviewControls scope={scope} proposal={proposal} action={transitionAction} />
+      </> : <p role="alert" className="marketing-unavailable">Esta versión tiene una estructura incompleta y no se puede mostrar ni revisar de forma segura.</p>}
       <section className="marketing-review-history" aria-label={`Historial de revisión de la versión ${proposal.version}`}>
         <h6>Historial de revisión</h6>
         {entries.length ? <ol>{entries.map(event => <li key={event.id}>

@@ -10,6 +10,7 @@ export type ProposalGenerationContext = ProposalScope & {
   brand: { name: string; website: string; summary: string };
   audience: { segmentName: string; geography: string; pains: string[]; objections: string[]; hypotheses: string[] };
   brief: { objective: string; timeframe: string; valueProposition: string; budgetRange: { min: number; max: number; currency: string } | null; missingInformation: string[] };
+  previousProposal: MarketingProposalContent | null;
   revisionFeedback: string | null;
 };
 
@@ -74,19 +75,37 @@ export async function createNextProposal(input: {
   now?: string;
 }): Promise<GenerateProposalResult> {
   if (!input.provider.isAvailable()) return { ok: false, kind: 'unavailable' };
-  const context = await input.repository.loadContext(input.scope);
-  if (!context || !matchesScope(context, input.scope)) return { ok: false, kind: 'scope_not_found' };
   const latest = await input.repository.getLatest(input.scope);
   if (latest && (latest.status !== 'approved' && latest.status !== 'revision')) return { ok: false, kind: 'invalid_transition' };
+  const context = await input.repository.loadContext(input.scope);
+  if (!context || !matchesScope(context, input.scope)) return { ok: false, kind: 'scope_not_found' };
+  const validatedPrevious = latest?.status === 'revision' ? validateProposalContent(latest.content) : null;
+  if (latest?.status === 'revision' && !validatedPrevious?.ok) return { ok: false, kind: 'invalid_output' };
+  const generationContext: ProposalGenerationContext = {
+    ...context,
+    previousProposal: validatedPrevious?.ok ? validatedPrevious.value : null,
+  };
 
   let raw: unknown;
   try {
-    raw = await input.provider.generate(context);
+    raw = await input.provider.generate(generationContext);
   } catch {
     return { ok: false, kind: 'provider_error' };
   }
   const validated = validateProposalContent(raw);
   if (!validated.ok) return { ok: false, kind: 'invalid_output' };
+  const generatedBudget = validated.value.paidPromotion.budgetRange;
+  const briefBudget = context.brief.budgetRange;
+  if (briefBudget === null) {
+    if (generatedBudget !== null) return { ok: false, kind: 'invalid_output' };
+  } else if (
+    generatedBudget === null ||
+    generatedBudget.currency !== briefBudget.currency ||
+    generatedBudget.min < briefBudget.min ||
+    generatedBudget.max > briefBudget.max
+  ) {
+    return { ok: false, kind: 'invalid_output' };
+  }
   const now = input.now ?? new Date().toISOString();
   try {
     const value = await input.repository.createVersion({
