@@ -21,6 +21,7 @@ Authenticate the installed CLI with the user-approved Supabase account, link Dev
 All operational tasks verified. CLI `2.119.0` is authenticated and linked. Local config and ignore rules were generated; README updated. Remote changes were limited to requested CLI credential creation and migration-history reconciliation; no schema/data SQL was replayed. The documented interactive login command is `supabase login --no-browser --agent no --output-format text`; agent-default JSON mode cannot prompt. Parent review and commit are next; no commit was created in this worker.
 
 ## Evidence and recovery
+- Work-unit commit: `3caa899` (`chore(supabase): configure linked migration workflow`). Parent structural readback and independent `migration list --linked` spot check passed; no remote publication performed.
 - Existing Marketing task locator: `odd/tasks/admin-marketing-workspace.md` (historical remote-status text is stale; later SQL application recorded in Engram).
 - Existing `supabase/.temp/` was untracked at task start; preserve it.
 - Scope rollback: local CLI config/docs only; history mutations require separate reconciliation, not schema rollback.
