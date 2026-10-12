@@ -3,8 +3,25 @@ import { notFound, redirect } from 'next/navigation';
 import { getAdminSession } from '../../../../../../lib/admin/session';
 import { createClient } from '../../../../../../lib/supabase/server';
 import Topbar from '../../../topbar';
-import { createMarketingBrand, updateMarketingBrand, updateMarketingClient } from '../../actions';
-import { BrandForm, ClientForm, type MarketingBrand, type MarketingClient } from '../../marketing-forms';
+import {
+  createMarketingAudience,
+  createMarketingBrand,
+  createMarketingCampaignBrief,
+  updateMarketingAudience,
+  updateMarketingBrand,
+  updateMarketingCampaignBrief,
+  updateMarketingClient,
+} from '../../actions';
+import {
+  AudienceForm,
+  BrandForm,
+  CampaignBriefForm,
+  ClientForm,
+  type MarketingAudience,
+  type MarketingBrand,
+  type MarketingCampaignBrief,
+  type MarketingClient,
+} from '../../marketing-forms';
 
 export const metadata: Metadata = { title: 'Cliente · Marketing' };
 
@@ -22,6 +39,17 @@ export default async function MarketingClientPage({ params }: { params: Params }
   ]);
   if (clientError || brandsError) throw new Error('Could not load Marketing client data.');
   if (!client) notFound();
+
+  const brandIds = (brands ?? []).map((brand: MarketingBrand) => brand.id);
+  const { data: audiences, error: audiencesError } = brandIds.length
+    ? await supabase.from('marketing_audiences').select('id, client_id, brand_id, segment_name, geography, pains, objections, hypotheses').eq('client_id', clientId).in('brand_id', brandIds).order('segment_name', { ascending: true }).returns<MarketingAudience[]>()
+    : { data: [] as MarketingAudience[], error: null };
+  const audienceIds = (audiences ?? []).map((audience: MarketingAudience) => audience.id);
+  const { data: briefs, error: briefsError } = audienceIds.length
+    ? await supabase.from('marketing_campaign_briefs').select('id, client_id, brand_id, audience_id, objective, timeframe, value_proposition, budget_range, missing_information').eq('client_id', clientId).in('audience_id', audienceIds).returns<MarketingCampaignBrief[]>()
+    : { data: [] as MarketingCampaignBrief[], error: null };
+  if (audiencesError || briefsError) throw new Error('Could not load Marketing audience and brief data.');
+  const briefsByAudience = new Map((briefs ?? []).map((brief: MarketingCampaignBrief) => [brief.audience_id, brief]));
 
   return (
     <>
@@ -45,11 +73,44 @@ export default async function MarketingClientPage({ params }: { params: Params }
             </div>
             {brands?.length ? (
               <div className="marketing-brand-list">
-                {brands.map((brand: MarketingBrand) => (
-                  <article className="marketing-brand-card" key={brand.id}>
-                    <BrandForm brand={brand} clientId={client.id} action={updateMarketingBrand} />
-                  </article>
-                ))}
+                {brands.map((brand: MarketingBrand) => {
+                  const brandAudiences = (audiences ?? []).filter((audience: MarketingAudience) => audience.brand_id === brand.id);
+                  return (
+                    <article className="marketing-brand-card" key={brand.id}>
+                      <BrandForm brand={brand} clientId={client.id} action={updateMarketingBrand} />
+                      <section className="marketing-audiences" aria-label={`Públicos de ${brand.name}`}>
+                        <div className="page-head">
+                          <p className="micro-label">{brandAudiences.length} públicos</p>
+                          <h3>Público y brief de campaña</h3>
+                          <p>Define a quién se dirige la estrategia y la información que orientará sus campañas.</p>
+                        </div>
+                        {brandAudiences.map((audience: MarketingAudience) => {
+                          const brief = briefsByAudience.get(audience.id);
+                          return (
+                            <div className="marketing-audience-card" key={audience.id}>
+                              <div className="marketing-audience-grid">
+                                <section className="marketing-create">
+                                  <h4>Información del público</h4>
+                                  <AudienceForm audience={audience} clientId={client.id} brandId={brand.id} action={updateMarketingAudience} />
+                                </section>
+                                <section className="marketing-create">
+                                  <h4>Brief de campaña</h4>
+                                  {brief
+                                    ? <CampaignBriefForm brief={brief} clientId={client.id} brandId={brand.id} audienceId={audience.id} action={updateMarketingCampaignBrief} />
+                                    : <CampaignBriefForm clientId={client.id} brandId={brand.id} audienceId={audience.id} action={createMarketingCampaignBrief} />}
+                                </section>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <section className="marketing-create">
+                          <h4>Agregar un público</h4>
+                          <AudienceForm clientId={client.id} brandId={brand.id} action={createMarketingAudience} />
+                        </section>
+                      </section>
+                    </article>
+                  );
+                })}
               </div>
             ) : <p className="marketing-empty-inline">Este cliente todavía no tiene marcas.</p>}
             <section className="marketing-create" aria-labelledby="new-brand-title">
