@@ -312,7 +312,7 @@ section[id] { scroll-margin-top: 96px; }
 .service-row { display: grid; grid-template-columns: 48px 1fr 1fr; gap: 32px; background: var(--mist); padding: 40px; border-radius: var(--radius-card); }
 .service-number { font-size: 14px; color: var(--steel); padding-top: 4px; }
 .service-row h3 { font-size: 30px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.2; }
-.service-row > div:last-child > p { color: var(--muted); font-size: 16px; }
+.service-row > div:last-of-type > p { color: var(--muted); font-size: 16px; }
 .tag-list { display: flex; flex-wrap: wrap; list-style: none; padding: 0; margin: 24px 0 0; gap: 8px; }
 .tag-list li { color: var(--steel); font-size: 12px; border: 1px solid #c1ccd4; border-radius: 999px; padding: 4px 12px; }
 
@@ -476,7 +476,7 @@ section[id] { scroll-margin-top: 96px; }
   .card-index { margin-bottom: 32px; }
   .benefit-card h3 { font-size: 30px; margin-bottom: 16px; }
   .service-row { grid-template-columns: 24px 1fr; padding: 24px; gap: 16px; }
-  .service-row > div:last-child { grid-column: 2; }
+  .service-row > div:last-of-type { grid-column: 2; }
   .service-row h3 { font-size: 24px; }
   .tagline-section { padding-block: 80px; text-align: left; }
   .tagline-text { font-size: 36px; line-height: 1.15; }
