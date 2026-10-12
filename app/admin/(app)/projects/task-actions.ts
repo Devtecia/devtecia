@@ -25,8 +25,8 @@ export async function mutateTask(raw: unknown): Promise<TaskMutationResult> {
       return Boolean(data);
     },
     rpc: async (name, args) => {
-      const { error } = await supabase.rpc(name, args);
-      return { error };
+      const { data, error } = await supabase.rpc(name, args);
+      return { error, data };
     },
   });
   if (result.ok) {

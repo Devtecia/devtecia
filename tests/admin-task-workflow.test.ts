@@ -12,7 +12,7 @@ function fake(overrides: Partial<TaskMutationPort> = {}) {
     project: async () => ({ id: projectId, key: 'WEB', statuses: [{ key: 'todo' }, { key: 'done' }] }),
     task: async id => ({ id, project_id: projectId, status: 'todo', version: 3 }),
     assignee: async () => true,
-    rpc: async (name, args) => { calls.push([name, args]); return { error: null }; },
+    rpc: async (name, args) => { calls.push([name, args]); return { error: null, data: { id: taskId } }; },
     ...overrides,
   };
   return { port, calls };
@@ -20,6 +20,7 @@ function fake(overrides: Partial<TaskMutationPort> = {}) {
 test('create validates and uses existing RPC with normalized nullable fields', async () => {
   const { port, calls } = fake();
   assert.equal((await executeTaskMutation({ kind: 'create', projectId, fields }, port)).ok, true);
+  assert.equal((await executeTaskMutation({ kind: 'create', projectId, fields }, port)).taskId, taskId);
   assert.equal(calls[0][0], 'create_task');
   assert.equal(calls[0][1].p_assignee_id, null);
 });

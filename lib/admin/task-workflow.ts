@@ -7,9 +7,9 @@ export type TaskMutationPort = {
   project(id: string): Promise<Project | null>;
   task(id: string): Promise<Task | null>;
   assignee(id: string): Promise<boolean>;
-  rpc(name: string, args: Record<string, unknown>): Promise<{ error: { code?: string } | null }>;
+  rpc(name: string, args: Record<string, unknown>): Promise<{ error: { code?: string } | null; data?: { id: string } | null }>;
 };
-export type TaskMutationResult = { ok: boolean; message?: string; errors?: TaskErrors; projectKey?: string };
+export type TaskMutationResult = { ok: boolean; message?: string; errors?: TaskErrors; projectKey?: string; taskId?: string };
 const conflict = 'Esta tarea fue actualizada por otra persona. Recarga el tablero antes de volver a intentarlo.';
 function databaseMessage(code?: string) {
   if (code === '40001') return conflict;
@@ -52,8 +52,8 @@ export async function executeTaskMutation(raw: unknown, port: TaskMutationPort):
       name = 'move_task';
       args = { p_task_id: input.taskId, p_version: input.version, p_status: input.status, p_before_task_id: input.beforeTaskId };
     }
-    const { error } = await port.rpc(name, args);
-    return error ? { ok: false, message: databaseMessage(error.code) } : { ok: true, projectKey: project.key };
+    const { error, data } = await port.rpc(name, args);
+    return error ? { ok: false, message: databaseMessage(error.code) } : { ok: true, projectKey: project.key, taskId: data?.id ?? (input.kind !== 'create' ? input.taskId : undefined) };
   } catch {
     return { ok: false, message: 'No pudimos conectar con el tablero. Intenta de nuevo.' };
   }
