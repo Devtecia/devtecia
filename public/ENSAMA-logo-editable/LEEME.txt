@@ -1,0 +1,12 @@
+ENSAMA — Logo reconstruido según las referencias aprobadas.
+
+ensama-logo.svg: versión principal, todos los elementos en trazados; no requiere fuentes.
+ensama-logo-sin-lema.svg: isotipo y nombre.
+ensama-logo-lema-editable.svg: nombre en trazados y lema como texto Manrope Medium. Instalar Manrope-Medium.ttf para editar el lema sin sustituciones.
+
+El isotipo aprobado se conserva; solo cambia su posición en el conjunto. ENSAMA es lettering reconstruido, con A sin travesaño: no se presenta como una reproducción literal de Manrope. La imagen de referencia no permite certificar la fuente original del nombre.
+
+Sistema tipográfico indicado en la lámina: Manrope para textos, interfaz y detalles; Playfair Display para títulos y mensajes editoriales.
+
+Colores: Terracota #8C6246 y Carbón #20201E. Fondo transparente.
+Manrope se distribuye con su licencia SIL Open Font License adjunta.
