@@ -83,7 +83,7 @@
 /* Fields */
 .admin .field { display: grid; gap: 8px; }
 .admin .field label { font-size: 14px; line-height: 20px; font-weight: 600; }
-.admin .field input {
+.admin .field input, .admin .field textarea {
   width: 100%;
   min-height: 44px;
   padding: 8px 12px;
@@ -94,9 +94,10 @@
   line-height: 24px;
   transition: border-color 300ms var(--ease), box-shadow 300ms var(--ease);
 }
-.admin .field input:hover { border-color: #b9bbb4; }
-.admin .field input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 2px var(--lime); }
-.admin .field input[aria-invalid='true'] { border-color: var(--danger); }
+.admin .field textarea { min-height: 104px; resize: vertical; }
+.admin .field input:hover, .admin .field textarea:hover { border-color: #b9bbb4; }
+.admin .field input:focus, .admin .field textarea:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 2px var(--lime); }
+.admin .field input[aria-invalid='true'], .admin .field textarea[aria-invalid='true'] { border-color: var(--danger); }
 
 .admin .form-message {
   padding: 8px 12px;
@@ -312,6 +313,32 @@
 .admin .member-status { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; background: var(--paper-sunk); color: var(--muted); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; }
 .admin .member-status--active { background: #dff3ab; color: #344712; }
 
+/* Marketing workspace */
+.admin .marketing-page { width: 100%; max-width: 1240px; margin: 0 auto; }
+.admin .marketing-page > .page-head { max-width: 760px; }
+.admin .marketing-page > .page-head h1 { font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em; }
+.admin .marketing-page > .page-head p:last-child, .admin .marketing-client-card > div > p:last-child { color: var(--muted); }
+.admin .marketing-empty { min-height: 220px; padding: 32px; display: grid; justify-items: start; align-content: center; gap: 12px; border: 1px dashed var(--line); border-radius: 12px; background: rgba(251, 250, 245, 0.7); }
+.admin .marketing-empty h2 { font-size: 24px; line-height: 32px; font-weight: 700; }
+.admin .marketing-empty > p:not(.micro-label) { max-width: 560px; color: var(--muted); }
+.admin .marketing-empty .button { margin-top: 4px; }
+.admin .marketing-client-list, .admin .marketing-brand-list { margin: 0; padding: 0; display: grid; gap: 16px; list-style: none; }
+.admin .marketing-client-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.admin .marketing-client-card > div { min-width: 0; display: grid; gap: 8px; }
+.admin .marketing-client-card h2 { font-size: 20px; line-height: 28px; font-weight: 700; }
+.admin .marketing-client-card h2 a { color: inherit; text-decoration: none; }
+.admin .marketing-client-card h2 a:hover { text-decoration: underline; }
+.admin .marketing-meta { color: var(--muted); font-size: 12px; line-height: 16px; }
+.admin .marketing-create { display: grid; gap: 16px; }
+.admin .marketing-create > h2, .admin .marketing-create > h3, .admin .marketing-brands h2 { font-size: 20px; line-height: 28px; font-weight: 700; }
+.admin .marketing-detail-grid { display: grid; grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr); align-items: start; gap: 24px; }
+.admin .marketing-detail-grid > .marketing-create, .admin .marketing-brands { display: grid; align-content: start; gap: 16px; }
+.admin .marketing-brands > .page-head { gap: 8px; }
+.admin .marketing-brands > .page-head p:last-child { color: var(--muted); }
+.admin .marketing-brand-card { padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: rgba(251, 250, 245, 0.7); }
+.admin .marketing-brand-card .panel { padding: 0; border: 0; background: transparent; }
+.admin .marketing-empty-inline { padding: 16px; border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); text-align: center; }
+
 /* Skeletons */
 .admin .skeleton-page { min-width: 0; }
 .admin .skeleton-page .project-head { padding: 32px 32px 24px; }
@@ -368,6 +395,8 @@
   .admin .board-preview { grid-auto-columns: minmax(240px, 80vw); }
   .admin .empty-state { padding: 32px 16px; }
   .admin .users-layout { grid-template-columns: minmax(0, 1fr); }
+  .admin .marketing-detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin .marketing-client-card { align-items: flex-start; flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {

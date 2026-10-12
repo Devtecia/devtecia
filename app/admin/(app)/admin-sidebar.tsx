@@ -1,4 +1,4 @@
-import { PlusIcon, SignOutIcon, UsersIcon } from '@phosphor-icons/react/ssr';
+import { MegaphoneIcon, PlusIcon, SignOutIcon, UsersIcon } from '@phosphor-icons/react/ssr';
 import type { CSSProperties } from 'react';
 import { roleLabels, type AdminProfile, type ProjectSummary } from '../../../lib/admin/session-types';
 
@@ -53,16 +53,22 @@ export default function AdminSidebar({ profile, projects, pathname, signOut }: A
           )}
         </div>
 
-        {isAdmin ? (
-          <ul className="sidebar-links">
+        <ul className="sidebar-links">
+          <li>
+            <a className="nav-item" href="/admin/marketing" {...currentProps(isCurrent(pathname, '/admin/marketing'))}>
+              <MegaphoneIcon aria-hidden="true" />
+              <span>Marketing</span>
+            </a>
+          </li>
+          {isAdmin ? (
             <li>
               <a className="nav-item" href="/admin/users" {...currentProps(isCurrent(pathname, '/admin/users'))}>
                 <UsersIcon aria-hidden="true" />
                 <span>Usuarios</span>
               </a>
             </li>
-          </ul>
-        ) : null}
+          ) : null}
+        </ul>
       </nav>
 
       <div className="sidebar-foot">
