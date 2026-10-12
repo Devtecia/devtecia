@@ -25,8 +25,13 @@ export default function SiteHeader({ locale = 'es', page = 'home' }: { locale?: 
       }
     };
     document.addEventListener('keydown', escape);
+    // The menu only exists on narrow screens; leaving that breakpoint closes it and releases the lock.
+    const mobile = window.matchMedia('(max-width: 860px)');
+    const leaveMobile = (event: MediaQueryListEvent) => { if (!event.matches) setOpen(false); };
+    mobile.addEventListener('change', leaveMobile);
     return () => {
       document.removeEventListener('keydown', escape);
+      mobile.removeEventListener('change', leaveMobile);
       root.style.overflow = previousOverflow;
     };
   }, [open]);

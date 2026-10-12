@@ -1,3 +1,4 @@
+import ScrollReveal from './scroll-reveal';
 import SiteHeader from './site-header';
 import { Benefits, Cases, Closing, FAQ, Hero, Process, Products, Services } from './home-sections';
 import { getDictionary, siteUrl, type Locale } from '../i18n';
@@ -26,6 +27,7 @@ export default function HomePage({ locale = 'es' }: { locale?: Locale }) {
         <FAQ locale={locale} />
       </main>
       <Closing locale={locale} />
+      <ScrollReveal />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }} />
     </>
   );

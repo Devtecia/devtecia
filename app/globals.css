@@ -320,6 +320,9 @@ section[id] { scroll-margin-top: 96px; }
 .tagline-text { font-size: 60px; line-height: 1.1; letter-spacing: -0.05em; margin: 24px auto; max-width: 800px; }
 .tagline-line { display: block; }
 .tagline-caption { color: var(--muted); font-size: 16px; }
+/* Scroll reveal: only hidden once JS is ready and motion is allowed */
+.reveal-ready [data-reveal] { transition: opacity 900ms var(--ease), transform 900ms var(--ease), filter 900ms var(--ease); transition-delay: var(--reveal-delay, 0ms); }
+.reveal-ready [data-reveal]:not(.is-revealed) { opacity: 0; transform: translateY(64px); filter: blur(12px); }
 .reveal-enhanced [data-word] { color: #a7adb1; transition: color 800ms var(--ease); }
 .reveal-enhanced [data-word].word-visible { color: var(--graphite); }
 
