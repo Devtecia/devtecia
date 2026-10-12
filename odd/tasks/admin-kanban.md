@@ -91,3 +91,9 @@ Remaining original scope: project/status settings, archive/delete, remaining T6 
 - Domain boundary: `2820038`, 233 additions, 0 deletions (validation/workflow, deterministic tests and task evidence).
 - UI boundary: board/forms/action/data loader and scoped CSS with board tests; kept cohesive rather than artificially splitting the interactive integration to meet the advisory 400 line heuristic.
 - No source normalization or behavioral edits after the successful verification; only task evidence/checkpoint documentation updated.
+
+### Local commit evidence
+- `2820038` — `feat(kanban): validate task mutations with optimistic locking` — 5 files, 233 additions, 0 deletions.
+- `3aeff76` — `feat(kanban): connect interactive board and task editor` — 9 files, 407 additions, 27 deletions (434 authored lines including task evidence). This cohesive integration is 34 lines over the advisory target; no PR created, and a future PR slice needs a maintainer size exception rather than cosmetic shrinking.
+- Verification of these exact source bytes: focused 11/11, admin 68/68, typecheck/build/diff checks passed; independent audit and parent focused spot check passed. Source files were unchanged after verification.
+- Running work-unit total before this evidence-only commit: 667 authored lines (includes checkpoint/evidence updates), versus initial 644-line working-tree snapshot. Push and deployment are not performed.
