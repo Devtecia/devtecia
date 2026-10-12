@@ -32,7 +32,7 @@ Later: my work view, reports and focus score, checklist, subtasks, dependencies,
 - [x] T1 Schema and SQL migrations: profiles, projects, project_members, tasks, RLS policies, SQL functions (create task with number, move task, update with version check, remove status). Route: delegated writer. Commit 465f3bc. Applied remotely 2026-10-11; all four tables verified.
 - [x] T2 Auth: Supabase SSR clients, proxy guard, `/admin/login` page, logout, first admin bootstrap. Route: delegated writer. Commit 6dd1662. Existing user promoted to active admin; live sign-in not yet verified.
 - [x] T3 Admin shell: layout, sidebar with projects, topbar with search, design tokens scoped to admin. Route: delegated writer. Commit ce7f6d4. Includes a minimal create project form (not assigned to any other task). Visual check of the signed in shell pending.
-- [ ] T4 Board: columns, cards, drag and drop, priority filter, create task.
+- [x] T4 Board: columns, cards, drag and drop, priority filter, create task.
 - [ ] T5 Task drawer and project settings with statuses editor.
 - [ ] T6 User management for admins.
 - [ ] T7 Tests, checks, browser verification, review.
@@ -61,9 +61,9 @@ Authorized scope: T4 and the editable task drawer portion of T5 only. No project
 Delivery strategy: stacked-to-main (cached user choice), no push or PR in this unit. Forecast: approximately 900 authored changed lines; cohesive slices are task validation/workflow with tests, then board/forms with tests. The 400 line heuristic is advisory, not a reason to compress code or omit checks.
 
 - [x] T4a Validate task fields and authorize create/update/move against the user-bound database; preserve optimistic locking and map safe errors. Route: delegated direct (multi-file logic and write preparation).
-- [ ] T4b Render persisted cards, search/priority filter, native drag/drop and keyboard/touch move/reorder using full column ordering. Route: delegated direct (multi-file UI).
-- [ ] T5a Accessible create/edit task dialog for all fields, pending and error states, refresh layout counts after success. Route: delegated direct (multi-file UI).
-- [ ] T7a Focused RED then GREEN tests, admin regression, typecheck, build, diff checks; independent parent verification and work-unit commits pending.
+- [x] T4b Render persisted cards, search/priority filter, native drag/drop and keyboard/touch move/reorder using full column ordering. Route: delegated direct (multi-file UI).
+- [x] T5a Accessible create/edit task dialog for all fields, pending and error states, refresh layout counts after success. Route: delegated direct (multi-file UI).
+- [x] T7a Focused RED then GREEN tests, admin regression, typecheck, build, diff checks; independent verification and parent focused-test spot check passed. Local commits recorded below; authenticated browser checks remain pending.
 
 Acceptance checks: malformed ids/versions/fields rejected server side; active session/project/status/assignee checked before RPC; stale versions friendly; no silently empty database failures; filtered reorder uses all column tasks; focus/escape/restore and touch controls; actual persistence only through existing RPCs. No network in tests.
 Verification commands: cached tsx runner for tests/admin-task-input.test.ts, tests/admin-task-workflow.test.ts, tests/admin-kanban-board.test.ts; admin-*.test.ts regression; npx tsc --noEmit; npm run build; git diff --check. RDD off, no native review.
@@ -75,12 +75,19 @@ Remaining original scope: project/status settings, archive/delete, remaining T6 
 - Existing RPCs now receive validated user-bound create/update/move calls. Task fields, inactive-assignee rejection, full-column reorder anchors, stale versions, friendly database and transport errors covered by fake-port tests. Native dialog/controls covered structurally, not browser interaction tests.
 - Full task pagination prevents database row limits from silently truncating column reorder anchors; label length capped at SQL's 40 characters to avoid silent truncation.
 - Runtime harness: no authenticated browser or hosted database mutation performed; those checks remain pending with parent. No new schema or dependencies, landing unchanged. RDD off.
-- Work-unit commit identities: pending parent independent verification and commit; T7a remains unchecked until that handoff completes. Recommended boundaries: task validation/workflow+tests, then functional board/forms+tests; each must keep corresponding proof/docs.
+- Work-unit commit identities: domain validation/workflow and tests `2820038`; functional board integration committed next, SHA recorded by follow-up evidence. Automated T7a is complete; original T7 remains partial until authenticated browser verification.
 - Rollback: remove task-action/workflow/input/board/form modules and tests, restore project page/data loading and appended task CSS only; unrelated admin, Marketing and Supabase configuration unchanged.
-- Next step: independent verification, record commits; later project/status settings and archive/delete remain T5 scope.
+- Next step: authenticated browser verification and explicit remote delivery authorization; project/status settings and archive/delete remain T5 scope.
 
 ### Domain work-unit checkpoint
 - Task input/workflow and their tests are the first coherent work unit. UI integration is implemented in the working tree and reserved for the next work-unit commit; T4b/T5a checkboxes close with that commit.
 - Independent audit reported no supported severe/blocking findings and focused 11/11 passing; parent spot check reran focused 11/11 passing. These checks cover the complete working-tree implementation.
 - Native risk assessment was high/unassessable due to untracked inventory; independent audit completed. RDD is off, so no native review was started.
 - Actual complete feature diff before commit evidence: 644 authored changed lines. No PR or remote delivery is created by these local work units.
+
+### Integrated board work-unit checkpoint
+- T4 is complete locally: persisted rendering/create, drag/drop and accessible reorder, search/priority filtering. T5 is partial: task fields edit is complete; project/status settings and archive/delete remain pending.
+- T6 remains partial: invitations exist separately, but remaining user-management scope has not been validated complete. Original T7 remains partial: automated tests/checks and independent audit passed, browser persistence checks pending.
+- Domain boundary: `2820038`, 233 additions, 0 deletions (validation/workflow, deterministic tests and task evidence).
+- UI boundary: board/forms/action/data loader and scoped CSS with board tests; kept cohesive rather than artificially splitting the interactive integration to meet the advisory 400 line heuristic.
+- No source normalization or behavioral edits after the successful verification; only task evidence/checkpoint documentation updated.

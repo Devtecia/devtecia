@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { getProjectByKey } from '../../../../../lib/admin/projects';
 import Topbar from '../../topbar';
+import KanbanBoard from './kanban-board';
 
 type Params = Promise<{ key: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -36,18 +37,8 @@ export default async function ProjectPage({ params, searchParams }: { params: Pa
           <p className="project-meta">{total === 1 ? '1 tarea abierta' : `${total} tareas abiertas`}</p>
           {project.description ? <p className="project-description">{project.description}</p> : null}
         </header>
-        <section className="board-preview" aria-label="Columnas del tablero">
-          {project.statuses.map(status => (
-            <div className="board-column" key={status.key} style={{ '--status-color': status.color } as CSSProperties}>
-              <h2 className="board-column-title">
-                <span className="status-dot" aria-hidden="true" />
-                {status.label}
-                <span className="board-column-count">{project.statusCounts[status.key] ?? 0}</span>
-              </h2>
-              {project.statusCounts[status.key] ? null : <p className="board-column-empty">Sin tareas</p>}
-            </div>
-          ))}
-        </section>
+        <KanbanBoard projectId={project.id} projectKey={project.key} statuses={project.statuses}
+          tasks={project.tasks} assignees={project.assignees} query={typeof query === 'string' ? query : ''} />
       </main>
     </>
   );
