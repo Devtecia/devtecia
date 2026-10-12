@@ -59,3 +59,28 @@ test('migration restricts image writes, reserves under lock and bounds storage',
   assert.match(sql, /grant execute on function public.reserve_task_image\(uuid,uuid\) to service_role/);
   assert.match(sql, /not a.abandoned/);
 });
+
+test('image retry keeps the saved task ID and only retries failed files', async () => {
+  const { uploadImageQueue } = await import('../lib/admin/task-image-client');
+  const files = ['capture-a', 'capture-b'].map(id => ({ id, name: id, file: new File(['webp'], `${id}.webp`, { type: 'image/webp' }) }));
+  const attempts: string[] = [];
+  const failed = await uploadImageQueue(taskId, files, async (id, file) => {
+    assert.equal(id, taskId);
+    attempts.push(file.name);
+    return { ok: file.name !== 'capture-b.webp', message: 'Try again' };
+  });
+  assert.equal(failed.length, 1);
+  assert.deepEqual(attempts, ['capture-a.webp', 'capture-b.webp']);
+  await uploadImageQueue(taskId, failed, async (id, file) => { assert.equal(id, taskId); attempts.push(file.name); return { ok: true }; });
+  assert.deepEqual(attempts, ['capture-a.webp', 'capture-b.webp', 'capture-b.webp']);
+});
+
+test('task editor skips mutation on image-only retry and transports only compressed files', async () => {
+  const { readFileSync } = await import('node:fs');
+  const form = readFileSync('app/admin/(app)/projects/[key]/task-form.tsx', 'utf8');
+  assert.match(form, /savedTaskId \? \{ ok: true/);
+  assert.match(form, /attachments.upload\(result.taskId\)/);
+  const client = readFileSync('lib/admin/task-image-client.ts', 'utf8');
+  assert.ok(client.indexOf('sourceImageDimensions(bytes)') < client.indexOf('createImageBitmap(file'));
+  assert.match(client, /new File\(\[blob\], 'task-image.webp'/);
+});

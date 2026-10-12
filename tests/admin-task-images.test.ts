@@ -35,3 +35,12 @@ test('reduces dense images rather than storing an oversized output', async () =>
   assert.ok(result.byteSize <= MAX_IMAGE_BYTES);
   assert.ok(result.width <= 1600 && result.height <= 1600);
 });
+
+test('browser preflight bounds image dimensions before decoding', async () => {
+  const { sourceImageDimensions } = await import('../lib/admin/task-images');
+  for (const format of ['png', 'jpeg', 'webp'] as const) {
+    const source = await sharp({ create: { width: 37, height: 29, channels: 3, background: 'blue' } }).toFormat(format).toBuffer();
+    assert.deepEqual(sourceImageDimensions(source), { width: 37, height: 29 });
+  }
+  assert.equal(sourceImageDimensions(Buffer.from('bad')), null);
+});
