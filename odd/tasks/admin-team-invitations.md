@@ -14,7 +14,7 @@ The Users page is a placeholder. Supabase Auth and an automatic member profile t
 - Delivery strategy: ask-on-risk. Forecast: approximately 250–400 authored changed lines, excluding generated files.
 
 ## Tasks
-- [x] INV-1 (delegated direct): Replace the Users placeholder with an admin-only invitation form and team list; add a guarded server action, invite callback/password setup, and deterministic tests. Acceptance observed: valid invitation calls `inviteUserByEmail` once with `member` metadata; unauthorized and malformed input do not create the service-role client; provider errors are safe; team rows show active, pending, or deactivated status. Checks: focused tests (8/8), full admin tests (32/32), build (passed). Commit: pending.
+- [x] INV-1 (delegated direct): Replace the Users placeholder with an admin-only invitation form and team list; add a guarded server action, invite callback/password setup, and deterministic tests. Acceptance observed: valid invitation calls `inviteUserByEmail` once with `member` metadata; unauthorized and malformed input do not create the service-role client; provider errors are safe; team rows show active, pending, or deactivated status. Checks: focused tests (8/8), full admin tests (32/32), build (passed). Work-unit commit: `cad200a` (`feat(admin): invite teammates by email`).
 
 ## Progress and next step
 Implementation and local checks are complete. The invite route uses the SSR callback (`token_hash`/`invite` or PKCE `code`) to establish cookies, then lets the teammate choose a password from the login page. The profile trigger defaults new Auth users to the database `member` role. The team page checks Auth email confirmation to distinguish a pending invitation from an active profile.
