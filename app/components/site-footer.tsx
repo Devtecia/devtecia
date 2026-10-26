@@ -1,11 +1,15 @@
 import Image from 'next/image';
+import { hasTracking, trackingIds } from '../../lib/consent';
 import { getDictionary, localePath, type Locale, type PageKey } from '../i18n';
+import { ConsentSettingsButton } from './tracking';
 
 // The compact variant keeps only what helps a visitor finish contacting us: no portfolio links.
 export default function SiteFooter({ locale = 'es', page = 'home', variant = 'full' }: { locale?: Locale; page?: PageKey; variant?: 'full' | 'compact' }) {
   const f = getDictionary(locale).footer;
   // Section anchors live on the home page; other pages link back to them.
   const anchorBase = page === 'home' ? '' : localePath(locale, 'home');
+  // Only offered when there is something to consent to.
+  const cookies = hasTracking(trackingIds()) && <ConsentSettingsButton label={f.cookies} />;
   if (variant === 'compact') {
     return (
       <footer className="site-footer site-footer-compact container">
@@ -18,6 +22,7 @@ export default function SiteFooter({ locale = 'es', page = 'home', variant = 'fu
         </div>
         <div className="footer-bottom">
           <span>© {new Date().getFullYear()} Devtecia</span>
+          {cookies}
           <a href="#contenido">{f.backToTop}</a>
         </div>
       </footer>
@@ -38,6 +43,7 @@ export default function SiteFooter({ locale = 'es', page = 'home', variant = 'fu
         <nav aria-label={f.navLabel}>
           {f.links.map(([label, href]) => <a key={href} href={`${anchorBase}${href}`}>{label}</a>)}
           <a href={localePath(locale, 'contact')} aria-current={page === 'contact' ? 'page' : undefined}>{f.contact}</a>
+          {cookies}
         </nav>
         <a href="#contenido">{f.backToTop}</a>
       </div>

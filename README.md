@@ -31,6 +31,8 @@ Convención de UTM: `utm_source` = `meta` / `google` / `linkedin`; `utm_medium` 
 
 **Medición.** Meta Pixel y GA4 solo se instalan si configuras `NEXT_PUBLIC_META_PIXEL_ID` / `NEXT_PUBLIC_GA_ID` (ver `.env.example`; hay que volver a desplegar). El evento `Lead` (Meta) y `generate_lead` (GA4) se dispara **solo cuando el servidor acepta el envío**, nunca al hacer clic. El botón de WhatsApp (`NEXT_PUBLIC_WHATSAPP_NUMBER`) dispara `Contact` y `whatsapp_click`. Antes de pautar: publicar la política de tratamiento de datos y poner su URL en `NEXT_PUBLIC_PRIVACY_URL`.
 
+**Consentimiento.** Con algún ID configurado, el sitio muestra un aviso de cookies de medición con **Aceptar** y **Rechazar** al mismo nivel. Los scripts de Meta y GA4 se cargan en el navegador solo después de aceptar; el HTML del servidor no los incluye. La elección se guarda en `localStorage` (`devtecia_tracking_consent`: `granted` / `denied`); si no se puede leer, no se mide nada. El botón **Cookies** del pie de página reabre el aviso; rechazar después de aceptar detiene la carga desde la siguiente visita o recarga. La lógica vive en `lib/consent.ts` y el aviso en `app/components/tracking.tsx`.
+
 El mensaje del formulario es opcional (nombre y email bastan); si se escribe, mínimo 10 caracteres. No se promete tiempo de respuesta en ninguna parte: un test lo vigila.
 
 ## Verification

@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import Tracking from '../app/components/tracking';
+import { getDictionary } from '../app/i18n';
 import { angleInterest, hasCampaignData, isGaId, isMetaPixelId, mergeAttribution, parseAttribution, privacyUrl, whatsappUrl } from '../lib/campaign';
 
 test('parses campaign parameters, the angle and an external referrer', () => {
@@ -53,15 +54,10 @@ test('analytics ids and the privacy url are validated before use', () => {
   for (const bad of ['javascript:alert(1)', '//evil.test', 'http://x.test', '', undefined]) assert.equal(privacyUrl(bad), '');
 });
 
-test('tracking renders nothing until ids are configured and never injects an invalid id', () => {
-  assert.equal(renderToStaticMarkup(createElement(Tracking, {})), '');
-  assert.equal(renderToStaticMarkup(createElement(Tracking, { metaPixelId: "1');alert(1);//", gaId: 'G-";alert(1)' })), '');
-  const meta = renderToStaticMarkup(createElement(Tracking, { metaPixelId: '123456789012345' }));
-  assert.match(meta, /fbq\('init', '123456789012345'\)/);
-  assert.match(meta, /fbq\('track', 'PageView'\)/);
-  assert.doesNotMatch(meta, /googletagmanager/);
-  const ga = renderToStaticMarkup(createElement(Tracking, { gaId: 'G-ABC123XYZ9' }));
-  assert.match(ga, /googletagmanager\.com\/gtag\/js\?id=G-ABC123XYZ9/);
-  assert.match(ga, /gtag\('config', 'G-ABC123XYZ9'\)/);
-  assert.doesNotMatch(ga, /fbq/);
+test('tracking never puts a script or the banner in the server html, even with valid ids', () => {
+  const copy = getDictionary('es').consent;
+  for (const props of [{}, { metaPixelId: "1');alert(1);//", gaId: 'G-";alert(1)' }, { metaPixelId: '123456789012345', gaId: 'G-ABC123XYZ9' }]) {
+    const html = renderToStaticMarkup(createElement(Tracking, { copy, ...props }));
+    assert.equal(html, '');
+  }
 });

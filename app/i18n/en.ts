@@ -181,6 +181,14 @@ const en: Dictionary = {
     links: [['Services', '#servicios'], ['Products', '#productos'], ['Work', '#casos']],
     contact: 'Contact',
     backToTop: 'Back to top ↑',
+    cookies: 'Cookies',
+  },
+  consent: {
+    title: 'Measurement cookies',
+    text: 'With your permission we use Meta Pixel and Google Analytics to learn which ads and pages work. They do not load until you accept, and you can change your choice at any time from the “Cookies” link in the footer.',
+    privacy: 'Data processing policy',
+    accept: 'Accept',
+    reject: 'Reject',
   },
   contact: {
     back: 'Back to home',

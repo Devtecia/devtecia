@@ -179,6 +179,14 @@ const es = {
     links: [['Servicios', '#servicios'], ['Productos', '#productos'], ['Casos', '#casos']],
     contact: 'Contacto',
     backToTop: 'Volver arriba ↑',
+    cookies: 'Cookies',
+  },
+  consent: {
+    title: 'Cookies de medición',
+    text: 'Con tu permiso usamos Meta Pixel y Google Analytics para saber qué anuncios y páginas funcionan. No se cargan hasta que aceptes y puedes cambiar tu decisión en cualquier momento desde el enlace «Cookies» del pie de página.',
+    privacy: 'Política de tratamiento de datos',
+    accept: 'Aceptar',
+    reject: 'Rechazar',
   },
   contact: {
     back: 'Volver al inicio',
