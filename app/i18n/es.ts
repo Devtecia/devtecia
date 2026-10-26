@@ -10,6 +10,8 @@ const es = {
     homeDescription: 'Diseñamos software a medida, conectamos procesos y creamos productos SaaS. Conoce nuestro trabajo y hablemos de lo que tu negocio necesita resolver.',
     contactTitle: 'Hablemos de tu proyecto | Devtecia',
     contactDescription: 'Cuéntanos qué necesitas resolver en tu operación y recibe una propuesta clara para avanzar.',
+    thanksTitle: 'Gracias por escribirnos | Devtecia',
+    thanksDescription: 'Recibimos tu mensaje. Revisaremos tu caso para conversar sobre tu operación y el siguiente paso.',
     ogImageAlt: 'Devtecia. Software a la medida de tu operación.',
     ogImageLines: ['Software a la medida', 'de tu operación.'],
   },
@@ -240,10 +242,16 @@ const es = {
     timeout: 'No pudimos confirmar el envío a tiempo. Puedes escribirnos directamente por email.',
     pendingButton: 'Enviando…',
     submit: 'Cuéntanos tu caso',
-    successTitle: 'Recibimos tu mensaje.',
-    successCopy: 'Gracias por escribirnos. Te contactaremos muy pronto para conversar sobre tu operación y el siguiente paso.',
-    successHome: 'Volver al inicio',
     noscript: 'Para usar el formulario, activa JavaScript o escribe a info@devtecia.com.',
+  },
+  thanks: {
+    eyebrow: 'Mensaje recibido',
+    title: 'Gracias por escribirnos.',
+    copy: 'Recibimos tu consulta. Revisaremos tu caso y te contactaremos para conversar sobre tu operación y el siguiente paso.',
+    home: 'Volver al inicio',
+    whatsapp: '¿Quieres adelantar la conversación? Escríbenos por WhatsApp',
+    whatsappMessage: 'Hola, acabo de enviarles mi consulta desde la web.',
+    direct: 'También puedes escribirnos a',
   },
 };
 

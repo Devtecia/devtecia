@@ -12,6 +12,8 @@ const en: Dictionary = {
     homeDescription: 'We design custom software, connect processes and build SaaS products. See our work and tell us what your business needs to solve.',
     contactTitle: 'Let’s talk about your project | Devtecia',
     contactDescription: 'Tell us what you need to solve in your operation and get a clear proposal to move forward.',
+    thanksTitle: 'Thank you for writing to us | Devtecia',
+    thanksDescription: 'We received your message. We will review your case to talk about your operation and the next step.',
     ogImageAlt: 'Devtecia. Software built around how you operate.',
     ogImageLines: ['Software built around', 'how you operate.'],
   },
@@ -242,10 +244,16 @@ const en: Dictionary = {
     timeout: 'We could not confirm delivery in time. You can email us directly.',
     pendingButton: 'Sending…',
     submit: 'Tell us your case',
-    successTitle: 'We received your message.',
-    successCopy: 'Thank you for writing to us. We will be in touch very soon to talk about your operation and the next step.',
-    successHome: 'Back to home',
     noscript: 'To use the form, enable JavaScript or write to info@devtecia.com.',
+  },
+  thanks: {
+    eyebrow: 'Message received',
+    title: 'Thank you for writing to us.',
+    copy: 'We received your message. We will review your case and get in touch to talk about your operation and the next step.',
+    home: 'Back to home',
+    whatsapp: 'Want to move the conversation forward? Message us on WhatsApp',
+    whatsappMessage: 'Hi, I just sent you my inquiry from the website.',
+    direct: 'You can also write to',
   },
 };
 

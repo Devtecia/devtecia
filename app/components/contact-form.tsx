@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { angleInterest, readAttribution, privacyUrl } from '../../lib/campaign';
+import { markLead, thanksUrl } from '../../lib/lead';
 import { getDictionary, localePath, type Locale } from '../i18n';
-import { trackLead } from './analytics';
 
-type State = 'idle' | 'pending' | 'error' | 'accepted';
+type State = 'idle' | 'pending' | 'error';
 type Field = 'name' | 'email' | 'message' | 'phone';
 type Errors = Partial<Record<Field, string>>;
 
@@ -22,7 +22,6 @@ export default function ContactForm({ locale = 'es' }: { locale?: Locale }) {
   const [notice, setNotice] = useState('');
   const [errors, setErrors] = useState<Errors>({});
   const dirty = useRef<Set<Field>>(new Set());
-  const successHeading = useRef<HTMLHeadingElement>(null);
   const form = useRef<HTMLFormElement>(null);
   const privacy = privacyUrl(process.env.NEXT_PUBLIC_PRIVACY_URL);
 
@@ -39,9 +38,17 @@ export default function ContactForm({ locale = 'es' }: { locale?: Locale }) {
     }
   }, []);
 
+  // After a successful send the form stays pending while the browser opens the thanks page. Coming back with the
+  // back button can restore this page from the back-forward cache in that state, so unlock it again.
   useEffect(() => {
-    if (state === 'accepted') successHeading.current?.focus();
-  }, [state]);
+    const restore = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      setState('idle');
+      setNotice('');
+    };
+    window.addEventListener('pageshow', restore);
+    return () => window.removeEventListener('pageshow', restore);
+  }, []);
 
   function check(field: Field, value: string) {
     if (field === 'name') return value.trim().length < 2 ? t.errors.name : '';
@@ -99,10 +106,13 @@ export default function ContactForm({ locale = 'es' }: { locale?: Locale }) {
       });
       const result = await response.json();
       if (response.status !== 202) throw new Error(typeof result.message === 'string' ? result.message : t.unconfirmed);
-      setState('accepted');
-      setNotice('');
-      // Only after the server confirmed: a conversion, not a click.
-      trackLead({ angle: readAttribution().angle, interest: String(data.get('interest') ?? '') });
+      // Only after the server confirmed: the thanks page counts the lead once, from this marker. If storage is blocked
+      // the visitor still gets there, just untracked. The form stays pending (button disabled) while the page changes.
+      let store: Storage | undefined;
+      try { store = window.sessionStorage; } catch { /* blocked storage */ }
+      markLead(store, { angle: readAttribution().angle, interest: String(data.get('interest') ?? '') }, Date.now());
+      window.location.assign(thanksUrl(localePath(locale, 'thanks'), window.location.search));
+      return;
     } catch (error) {
       setState('error');
       setNotice(error instanceof Error && error.name !== 'AbortError'
@@ -111,23 +121,6 @@ export default function ContactForm({ locale = 'es' }: { locale?: Locale }) {
     } finally {
       window.clearTimeout(timer);
     }
-  }
-
-  if (state === 'accepted') {
-    return (
-      <div className="contact-panel contact-success">
-        <div className="contact-sent" aria-hidden="true">
-          <span className="contact-sent-card"><span /><span /><span /></span>
-          <svg className="contact-sent-check" viewBox="0 0 48 48" focusable="false">
-            <circle cx="24" cy="24" r="22" pathLength="1" />
-            <path d="M15 24.5l6 6 12-13" pathLength="1" />
-          </svg>
-        </div>
-        <h2 ref={successHeading} tabIndex={-1}>{t.successTitle}</h2>
-        <p>{t.successCopy}</p>
-        <a className="text-link" href={localePath(locale, 'home')}>{t.successHome} <span aria-hidden="true">↗</span></a>
-      </div>
-    );
   }
 
   const describedBy = (field: Field) => errors[field] ? `${field}-error` : undefined;

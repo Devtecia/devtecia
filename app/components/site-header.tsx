@@ -36,8 +36,8 @@ export default function SiteHeader({ locale = 'es', page = 'home' }: { locale?: 
     };
   }, [open]);
 
-  // The contact page keeps the visitor focused: only the way back and the language.
-  if (page === 'contact') return (
+  // The contact and thanks pages keep the visitor focused: only the way back and the language.
+  if (page === 'contact' || page === 'thanks') return (
     <header className="site-header site-header-minimal">
       <nav className="site-nav container" aria-label={t.navLabel}>
         <a className="contact-back" href={localePath(locale, 'home')}><span aria-hidden="true">←</span>{getDictionary(locale).contact.back}</a>
