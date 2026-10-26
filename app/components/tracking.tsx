@@ -2,23 +2,26 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { privacyUrl } from '../../lib/campaign';
-import { CONSENT_OPEN_ATTR, CONSENT_OPEN_EVENT, injectTracking, readConsent, shouldLoadTracking, trackingIds, writeConsent, type Consent, type TrackerWindow } from '../../lib/consent';
+import { CONSENT_OPEN_ATTR, CONSENT_OPEN_EVENT, consentText, hasTracking, injectTracking, readConsent, shouldLoadTracking, trackingIds, writeConsent, type Consent, type TrackerWindow } from '../../lib/consent';
 import type { Dictionary } from '../i18n';
 
-// Meta Pixel and GA4, switched on only by NEXT_PUBLIC_META_PIXEL_ID / NEXT_PUBLIC_GA_ID and loaded only after the
+// Meta Pixel, GA4 and Google Ads, switched on only by NEXT_PUBLIC_META_PIXEL_ID / NEXT_PUBLIC_GA_ID /
+// NEXT_PUBLIC_GOOGLE_ADS_ID and loaded only after the
 // visitor accepts. The server HTML never carries a tracking script or the banner: both appear after hydration, once the
 // stored choice is known, so a returning visitor never sees the banner flash.
-type Props = { copy: Dictionary['consent']; metaPixelId?: string; gaId?: string };
+type Props = { copy: Dictionary['consent']; metaPixelId?: string; gaId?: string; googleAdsId?: string };
 
 const storage = () => { try { return window.localStorage; } catch { return undefined; } };
 
-export default function Tracking({ copy: t, metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID, gaId = process.env.NEXT_PUBLIC_GA_ID }: Props) {
-  const ids = trackingIds(metaPixelId, gaId);
+export default function Tracking({
+  copy: t, metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID, gaId = process.env.NEXT_PUBLIC_GA_ID, googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID,
+}: Props) {
+  const ids = trackingIds(metaPixelId, gaId, googleAdsId);
   const [open, setOpen] = useState(false);
   const firstButton = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const bannerRef = useRef<HTMLElement>(null);
-  const enabled = Boolean(ids.meta || ids.ga);
+  const enabled = hasTracking(ids);
 
   useEffect(() => {
     if (!enabled) return;
@@ -70,7 +73,7 @@ export default function Tracking({ copy: t, metaPixelId = process.env.NEXT_PUBLI
   return (
     <section ref={bannerRef} className="consent-banner" role="dialog" aria-labelledby="consent-title" aria-describedby="consent-text">
       <h2 id="consent-title" className="consent-title">{t.title}</h2>
-      <p id="consent-text" className="consent-text">{t.text}{privacy && <> <a className="text-link" href={privacy}>{t.privacy}</a></>}</p>
+      <p id="consent-text" className="consent-text">{consentText(t.text, ids, t.and)}{privacy && <> <a className="text-link" href={privacy}>{t.privacy}</a></>}</p>
       {/* Same weight on purpose: rejecting must be as easy as accepting. */}
       <div className="consent-actions">
         <button ref={firstButton} type="button" className="consent-button" onClick={() => choose('denied')}>{t.reject}</button>

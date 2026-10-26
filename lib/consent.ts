@@ -1,9 +1,9 @@
-// Opt-in for Meta Pixel and GA4. Nothing loads until the visitor accepts; any doubt (no choice, blocked or corrupted
+// Opt-in for Meta Pixel, GA4 and Google Ads. Nothing loads until the visitor accepts; any doubt (no choice, blocked or corrupted
 // storage) means no tracking. Everything here is pure except injectTracking, which receives the window and document.
-import { isGaId, isMetaPixelId } from './campaign';
+import { isGaId, isGoogleAdsId, isMetaPixelId } from './campaign';
 
 export type Consent = 'granted' | 'denied';
-export type TrackingIds = { meta: string; ga: string };
+export type TrackingIds = { meta: string; ga: string; ads: string };
 
 export const CONSENT_KEY = 'devtecia_tracking_consent';
 /** Fired by the footer "Cookies" button to show the banner again. */
@@ -14,11 +14,27 @@ export const CONSENT_OPEN_ATTR = 'data-consent-open';
 type Store = Pick<Storage, 'getItem' | 'setItem'>;
 
 /** Only valid ids survive, because they end up inside script URLs and calls. */
-export function trackingIds(meta: unknown = process.env.NEXT_PUBLIC_META_PIXEL_ID, ga: unknown = process.env.NEXT_PUBLIC_GA_ID): TrackingIds {
-  return { meta: isMetaPixelId(meta) ? meta : '', ga: isGaId(ga) ? ga : '' };
+export function trackingIds(
+  meta: unknown = process.env.NEXT_PUBLIC_META_PIXEL_ID,
+  ga: unknown = process.env.NEXT_PUBLIC_GA_ID,
+  ads: unknown = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID,
+): TrackingIds {
+  return { meta: isMetaPixelId(meta) ? meta : '', ga: isGaId(ga) ? ga : '', ads: isGoogleAdsId(ads) ? ads : '' };
 }
 
-export const hasTracking = (ids: TrackingIds) => Boolean(ids.meta || ids.ga);
+export const hasTracking = (ids: TrackingIds) => Boolean(ids.meta || ids.ga || ids.ads);
+
+/** Product names of the configured trackers, in a fixed order, for the consent text. */
+export function consentPlatforms(ids: TrackingIds): string[] {
+  return [ids.meta && 'Meta Pixel', ids.ga && 'Google Analytics', ids.ads && 'Google Ads'].filter((name): name is string => Boolean(name));
+}
+
+/** Fills `{platforms}` in the banner text with the configured trackers only: "A", "A and B", "A, B and C". */
+export function consentText(template: string, ids: TrackingIds, and: string): string {
+  const names = consentPlatforms(ids);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} ${and} ${names[names.length - 1]}` : names.join('');
+  return template.replace('{platforms}', list);
+}
 
 export function parseConsent(raw: unknown): Consent | null {
   return raw === 'granted' || raw === 'denied' ? raw : null;
@@ -46,7 +62,10 @@ function addScript(doc: ScriptDoc, src: string) {
   doc.head.appendChild(script);
 }
 
-/** Meta's documented queue stub plus gtag's dataLayer. Idempotent: a second call (or a reopened banner) adds nothing. */
+/**
+ * Meta's documented queue stub plus gtag's dataLayer. GA4 and Google Ads share one gtag.js (loaded with the first
+ * configured id) and each gets its own config. Idempotent: a second call (or a reopened banner) adds nothing.
+ */
 export function injectTracking(ids: TrackingIds, win: TrackerWindow, doc: ScriptDoc) {
   if (ids.meta && !win.fbq) {
     const fbq: Queue = (...args) => { if (fbq.callMethod) fbq.callMethod(...args); else fbq.queue!.push(args); };
@@ -57,12 +76,14 @@ export function injectTracking(ids: TrackingIds, win: TrackerWindow, doc: Script
     fbq('init', ids.meta);
     fbq('track', 'PageView');
   }
-  if (ids.ga && !win.gtag) {
-    addScript(doc, `https://www.googletagmanager.com/gtag/js?id=${ids.ga}`);
+  const tagId = ids.ga || ids.ads;
+  if (tagId && !win.gtag) {
+    addScript(doc, `https://www.googletagmanager.com/gtag/js?id=${tagId}`);
     const dataLayer = (win.dataLayer = win.dataLayer ?? []);
     // gtag.js reads the arguments object itself, not an array copy.
     win.gtag = function gtag() { dataLayer.push(arguments); };
     win.gtag('js', new Date());
-    win.gtag('config', ids.ga);
+    if (ids.ga) win.gtag('config', ids.ga);
+    if (ids.ads) win.gtag('config', ids.ads);
   }
 }

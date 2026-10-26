@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { angleInterest, metaBrowserIds, readAttribution, privacyUrl } from '../../lib/campaign';
-import { readConsent } from '../../lib/consent';
-import { markLead, newEventId, thanksUrl } from '../../lib/lead';
+import { readConsent, trackingIds } from '../../lib/consent';
+import { hashContact, markLead, newEventId, thanksUrl } from '../../lib/lead';
 import { getDictionary, localePath, type Locale } from '../i18n';
 
 type State = 'idle' | 'pending' | 'error';
@@ -108,6 +108,11 @@ export default function ContactForm({ locale = 'es' }: { locale?: Locale }) {
     let cookie = '';
     try { cookie = document.cookie; } catch { /* blocked cookies */ }
     const meta = metaBrowserIds(cookie, window.location.search, attribution.fbclid, Date.now());
+    // Google Ads enhanced conversions: only SHA-256 hashes, computed while the request is in flight, and only when the
+    // visitor already accepted measurement and Google Ads is configured. The raw values never reach storage.
+    const contactHashes = consent === 'granted' && trackingIds().ads
+      ? hashContact({ email: String(data.get('email') ?? ''), phone: String(data.get('phone') ?? '') })
+      : Promise.resolve({});
     try {
       const response = await fetch(locale === 'es' ? '/api/contact' : `/api/contact?lang=${locale}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -122,7 +127,7 @@ export default function ContactForm({ locale = 'es' }: { locale?: Locale }) {
       // the visitor still gets there, just untracked. The form stays pending (button disabled) while the page changes.
       let store: Storage | undefined;
       try { store = window.sessionStorage; } catch { /* blocked storage */ }
-      markLead(store, { angle: attribution.angle, interest: String(data.get('interest') ?? ''), eventId }, Date.now());
+      markLead(store, { angle: attribution.angle, interest: String(data.get('interest') ?? ''), eventId, ...await contactHashes }, Date.now());
       window.location.assign(thanksUrl(localePath(locale, 'thanks'), window.location.search));
       return;
     } catch (error) {

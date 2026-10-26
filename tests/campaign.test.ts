@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import Tracking from '../app/components/tracking';
 import { getDictionary } from '../app/i18n';
-import { angleInterest, hasCampaignData, isGaId, isMetaPixelId, mergeAttribution, metaBrowserIds, parseAttribution, privacyUrl, readCookie, whatsappUrl } from '../lib/campaign';
+import { angleInterest, googleAdsSendTo, hasCampaignData, isGaId, isGoogleAdsId, isGoogleAdsLabel, isMetaPixelId, mergeAttribution, metaBrowserIds, parseAttribution, privacyUrl, readCookie, whatsappUrl } from '../lib/campaign';
 
 test('parses campaign parameters, the angle and an external referrer', () => {
   const found = parseAttribution('?utm_source=meta&utm_medium=paid_social&utm_campaign=excel-oct&utm_content=video1&fbclid=AbC123&a=excel', 'https://l.instagram.com/', '/', 'www.devtecia.com');
@@ -72,4 +72,15 @@ test('meta browser ids come from the _fbp and _fbc cookies, building fbc from fb
   assert.deepEqual(metaBrowserIds('', '', 'Stored123', now), { fbc: `fb.1.${now}.Stored123` });
   assert.deepEqual(metaBrowserIds('', '?fbclid=%3Cscript%3E', undefined, now), {});
   assert.deepEqual(metaBrowserIds('', '', undefined, now), {});
+});
+
+test('google ads ids and conversion labels are validated before they reach gtag', () => {
+  assert.equal(isGoogleAdsId('AW-123456789'), true);
+  for (const bad of ['', 'AW-', 'AW-12345', 'aw-123456789', 'G-ABC123XYZ9', "AW-123456789');alert(1)//", 'AW-1234567890123456', undefined, 123456789]) assert.equal(isGoogleAdsId(bad), false, String(bad));
+  assert.equal(isGoogleAdsLabel('AbC-D_efG-h12'), true);
+  for (const bad of ['', 'short', 'a'.repeat(41), 'AbC/def123', 'AbC def123', "x');alert(1)", undefined]) assert.equal(isGoogleAdsLabel(bad), false, String(bad));
+  assert.equal(googleAdsSendTo('AW-123456789', 'AbC-D_efG-h12'), 'AW-123456789/AbC-D_efG-h12');
+  assert.equal(googleAdsSendTo('AW-123456789', ''), '');
+  assert.equal(googleAdsSendTo('', 'AbC-D_efG-h12'), '');
+  assert.equal(googleAdsSendTo('AW-123456789', 'bad label'), '');
 });

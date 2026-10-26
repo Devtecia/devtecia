@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { LEAD_KEY, LEAD_TTL_MS, consumeLead, decodeLead, encodeLead, isEventId, markLead, newEventId, settleLead, thanksUrl } from '../lib/lead';
+import { createHash } from 'node:crypto';
+import { LEAD_KEY, LEAD_TTL_MS, adsEmail, adsPhone, consumeLead, decodeLead, encodeLead, hashContact, isEventId, isSha256Hex, markLead, newEventId, settleLead, thanksUrl } from '../lib/lead';
 
 const memory = (initial: Record<string, string> = {}) => {
   const data: Record<string, string> = { ...initial };
@@ -16,7 +17,7 @@ const broken = {
   setItem: () => { throw new Error('blocked'); },
   removeItem: () => { throw new Error('blocked'); },
 };
-const ids = { meta: '123456789012345', ga: 'G-ABC123XYZ9' };
+const ids = { meta: '123456789012345', ga: 'G-ABC123XYZ9', ads: '' };
 const now = 1_700_000_000_000;
 
 test('the marker keeps only a known angle and interest', () => {
@@ -55,7 +56,7 @@ test('the lead fires only with consent and trackers, but the marker is always sp
   assert.deepEqual(settleLead(granted, 'granted', ids, now), { angle: 'medida' });
   assert.equal(settleLead(granted, 'granted', ids, now), null);
 
-  for (const [consent, trackers] of [['denied', ids], [null, ids], ['granted', { meta: '', ga: '' }]] as const) {
+  for (const [consent, trackers] of [['denied', ids], [null, ids], ['granted', { meta: '', ga: '', ads: '' }]] as const) {
     const store = memory();
     markLead(store, {}, now);
     assert.equal(settleLead(store, consent, trackers, now), null);
@@ -92,4 +93,37 @@ test('event ids are unique, well formed and survive a missing randomUUID', () =>
   assert.notEqual(newEventId(undefined), bare);
   assert.ok(isEventId(newEventId(globalThis.crypto)));
   for (const bad of ['', 'short', 'a'.repeat(65), 'bad id', '<x>', 42, null]) assert.equal(isEventId(bad), false, String(bad));
+});
+
+const sha = (value: string) => createHash('sha256').update(value).digest('hex');
+
+test('contact data is normalized the way google ads enhanced conversions expects', () => {
+  assert.equal(adsEmail('  Ana.Perez@Example.COM '), 'ana.perez@example.com');
+  assert.equal(adsEmail('Ana.Perez@Gmail.com'), 'anaperez@gmail.com');
+  assert.equal(adsEmail('a.b.c@googlemail.com'), 'abc@googlemail.com');
+  for (const bad of ['', 'no-at-sign', '@example.com', 'ana@']) assert.equal(adsEmail(bad), '', bad);
+  assert.equal(adsPhone('+57 300 123 4567'), '+573001234567');
+  assert.equal(adsPhone('+1 (123) 123-4567'), '+11231234567');
+  // Without a country code the number cannot be put in E.164, so it is not sent.
+  for (const bad of ['', '300 123 4567', '+123', '+1234567890123456', '57+3001234567']) assert.equal(adsPhone(bad), '', bad);
+});
+
+test('only sha-256 hashes of the contact data are produced, and nothing without web crypto', async () => {
+  const hashes = await hashContact({ email: ' Ana@Example.com ', phone: '+57 300 123 4567' });
+  assert.deepEqual(hashes, { emailHash: sha('ana@example.com'), phoneHash: sha('+573001234567') });
+  assert.deepEqual(await hashContact({ email: 'ana@example.com', phone: '3001234567' }), { emailHash: sha('ana@example.com') });
+  assert.deepEqual(await hashContact({ email: 'ana@example.com', phone: '' }, null), {});
+  assert.deepEqual(await hashContact({ email: 'ana@example.com' }, { digest: () => Promise.reject(new Error('insecure')) }), {});
+});
+
+test('the marker stores only well formed hashes, never the raw contact data', () => {
+  const emailHash = sha('ana@example.com');
+  const phoneHash = sha('+573001234567');
+  const raw = encodeLead({ interest: 'other', emailHash, phoneHash, email: 'ana@example.com', phone: '+573001234567' } as Parameters<typeof encodeLead>[0], now);
+  assert.doesNotMatch(raw, /ana@example\.com|573001234567"/);
+  assert.deepEqual(decodeLead(raw, now), { interest: 'other', emailHash, phoneHash });
+  assert.deepEqual(decodeLead(JSON.stringify({ emailHash: 'ana@example.com', phoneHash: 'A'.repeat(64), at: now }), now), {});
+  assert.deepEqual(decodeLead(JSON.stringify({ emailHash: emailHash.toUpperCase(), at: now }), now), {});
+  assert.equal(isSha256Hex(emailHash), true);
+  for (const bad of ['', 'abc', emailHash + 'a', 'g'.repeat(64), 42, undefined]) assert.equal(isSha256Hex(bad), false, String(bad));
 });

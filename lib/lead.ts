@@ -4,7 +4,9 @@
 import { isAngle } from './campaign';
 import { shouldLoadTracking, type Consent, type TrackingIds } from './consent';
 
-export type Lead = { angle?: string; interest?: string; eventId?: string };
+// Contact data only ever travels as SHA-256 hashes for Google Ads enhanced conversions; the raw email and phone are
+// never stored in the marker.
+export type Lead = { angle?: string; interest?: string; eventId?: string; emailHash?: string; phoneHash?: string };
 type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export const LEAD_KEY = 'devtecia_lead_pending';
@@ -16,6 +18,53 @@ const interests = ['operations', 'automation', 'integrations', 'other'];
 const eventIdPattern = /^[A-Za-z0-9-]{16,64}$/;
 
 export const isEventId = (value: unknown): value is string => typeof value === 'string' && eventIdPattern.test(value);
+export const isSha256Hex = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+
+/**
+ * Google Ads normalization for enhanced conversions: trimmed, lowercase, and for gmail.com / googlemail.com the
+ * periods before the domain removed. '' when it is not an address.
+ */
+export function adsEmail(email: string): string {
+  const value = email.trim().toLowerCase();
+  const at = value.lastIndexOf('@');
+  if (at < 1 || at === value.length - 1) return '';
+  const [user, domain] = [value.slice(0, at), value.slice(at + 1)];
+  return domain === 'gmail.com' || domain === 'googlemail.com' ? `${user.replace(/\./g, '')}@${domain}` : value;
+}
+
+/**
+ * E.164 as Google Ads expects it: a plus sign and 11 to 15 characters in total. A number typed without its country
+ * code cannot be converted reliably, so it returns '' and is simply not sent.
+ */
+export function adsPhone(phone: string): string {
+  const value = phone.trim();
+  if (!value.startsWith('+')) return '';
+  const digits = value.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 14 && !digits.startsWith('0') ? `+${digits}` : '';
+}
+
+type Digest = Pick<SubtleCrypto, 'digest'>;
+
+/** Hex SHA-256 of the normalized email and phone with Web Crypto. Without it (insecure context) nothing is hashed. */
+export async function hashContact(
+  { email = '', phone = '' }: { email?: string; phone?: string },
+  subtle: Digest | null | undefined = globalThis.crypto?.subtle,
+): Promise<Pick<Lead, 'emailHash' | 'phoneHash'>> {
+  if (!subtle) return {};
+  const hash = async (value: string) => {
+    const buffer = await subtle.digest('SHA-256', new TextEncoder().encode(value));
+    return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join('');
+  };
+  try {
+    const found: Pick<Lead, 'emailHash' | 'phoneHash'> = {};
+    const [normalizedEmail, normalizedPhone] = [adsEmail(email), adsPhone(phone)];
+    if (normalizedEmail) found.emailHash = await hash(normalizedEmail);
+    if (normalizedPhone) found.phoneHash = await hash(normalizedPhone);
+    return found;
+  } catch {
+    return {};
+  }
+}
 
 type RandomSource = { randomUUID?: () => string; getRandomValues?: <T extends ArrayBufferView | null>(array: T) => T };
 
@@ -40,6 +89,8 @@ function known(lead: Lead): Lead {
   if (isAngle(lead.angle)) found.angle = lead.angle;
   if (typeof lead.interest === 'string' && interests.includes(lead.interest)) found.interest = lead.interest;
   if (isEventId(lead.eventId)) found.eventId = lead.eventId;
+  if (isSha256Hex(lead.emailHash)) found.emailHash = lead.emailHash;
+  if (isSha256Hex(lead.phoneHash)) found.phoneHash = lead.phoneHash;
   return found;
 }
 

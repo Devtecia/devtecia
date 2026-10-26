@@ -187,8 +187,9 @@ const en: Dictionary = {
   },
   consent: {
     title: 'Measurement cookies',
-    text: 'With your permission we use Meta Pixel and Google Analytics to learn which ads and pages work. They do not load until you accept, and you can change your choice at any time from the “Cookies” link in the footer.',
+    text: 'With your permission we use {platforms} to learn which ads and pages work. They do not load until you accept, and you can change your choice at any time from the “Cookies” link in the footer.',
     privacy: 'Data processing policy',
+    and: 'and',
     accept: 'Accept',
     reject: 'Reject',
   },

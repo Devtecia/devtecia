@@ -101,6 +101,13 @@ export function metaBrowserIds(cookie: string, search: string, storedFbclid: str
 // IDs end up inside inline scripts, so only the exact shapes are accepted.
 export const isMetaPixelId = (value: unknown): value is string => typeof value === 'string' && /^\d{10,20}$/.test(value);
 export const isGaId = (value: unknown): value is string => typeof value === 'string' && /^G-[A-Z0-9]{6,14}$/.test(value);
+export const isGoogleAdsId = (value: unknown): value is string => typeof value === 'string' && /^AW-\d{6,15}$/.test(value);
+export const isGoogleAdsLabel = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_-]{6,40}$/.test(value);
+
+/** The `send_to` of a Google Ads conversion, AW-<id>/<label>, or '' when either part is missing or malformed. */
+export function googleAdsSendTo(id: unknown, label: unknown): string {
+  return isGoogleAdsId(id) && isGoogleAdsLabel(label) ? `${id}/${label}` : '';
+}
 
 export function privacyUrl(value: string | undefined): string {
   return typeof value === 'string' && (/^https:\/\/[^\s<>"']+$/.test(value) || /^\/(?!\/)[^\s<>"']*$/.test(value)) ? value : '';
