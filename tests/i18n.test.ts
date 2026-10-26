@@ -21,14 +21,17 @@ test('english services render english copy while keeping animation keys stable',
   }
   assert.match(html, />supplier<\/dt>/);
   assert.match(html, /COP/);
-  assert.match(html, /href="\/en\/hablemos"/);
+  // On the home page the contact buttons jump to the form that lives in the page itself.
+  assert.match(html, /href="#hablemos"/);
+  assert.doesNotMatch(html, /href="\/en\/hablemos"/);
   assert.doesNotMatch(html, /Integraciones, automatización e IA|Escanear|Recibo de ejemplo/);
 });
 
 test('english hero, faq, closing and tagline point to english routes', () => {
   const hero = renderToStaticMarkup(createElement(Hero, { locale: 'en' }));
   assert.match(hero, /Software built around/);
-  assert.match(hero, /href="\/en\/hablemos"/);
+  assert.match(hero, /href="#hablemos"/);
+  assert.doesNotMatch(hero, /href="\/en\/hablemos"/);
   assert.match(hero, /Ventex and ENSAMA/);
   assert.doesNotMatch(hero, /Software a la medida|Pausar|Estudio de software/);
   const faq = renderToStaticMarkup(createElement(FAQ, { locale: 'en' }));
@@ -57,7 +60,10 @@ test('header language selector links to the equivalent page and marks the curren
   assert.match(en, /<nav[^>]*aria-label="Language"/);
   assert.match(en, /<a[^>]*href="\/"[^>]*hrefLang="es"[^>]*lang="es"[^>]*>ES<\/a>/);
   assert.match(en, /<a[^>]*href="\/en"[^>]*aria-current="true"[^>]*>EN<\/a>/);
-  assert.match(en, /href="\/en\/hablemos"/);
+  // The header button scrolls to the home form; the contact page stays reachable from the footer.
+  assert.match(en, /class="button button-small" href="#hablemos"/);
+  assert.doesNotMatch(en, /href="\/en\/hablemos"/);
+  assert.match(renderToStaticMarkup(createElement(Closing, { locale: 'en' })), /href="\/en\/hablemos"/);
 });
 
 test('english home metadata declares hreflang alternates', () => {

@@ -3,7 +3,7 @@ import TaglineReveal from './tagline-reveal';
 import HeroMedia from './hero-media';
 import AiReceiptFlow from './ai-receipt-flow';
 import SiteFooter from './site-footer';
-import { getDictionary, localePath, type Locale } from '../i18n';
+import { getDictionary, type Locale } from '../i18n';
 
 type Props = { locale?: Locale };
 
@@ -16,7 +16,7 @@ export function Hero({ locale = 'es' }: Props) {
         <h1 id="hero-title">{t.title[0]}<br />{t.title[1]}</h1>
         <p className="hero-description">{t.description}</p>
         <div className="hero-actions">
-          <a className="button" href={localePath(locale, 'contact')}>{t.cta} <span aria-hidden="true">↗</span></a>
+          <a className="button" href="#hablemos">{t.cta} <span aria-hidden="true">↗</span></a>
           <a className="text-link" href="#productos">{t.secondary} <span aria-hidden="true">↓</span></a>
         </div>
         <a className="hero-proof" href="#casos">{t.proof} <span aria-hidden="true">↗</span></a>
@@ -26,6 +26,9 @@ export function Hero({ locale = 'es' }: Props) {
   );
 }
 
+// The three starting points double as the three campaign angles (?a=excel|tareas|medida).
+const angles = ['excel', 'tareas', 'medida'];
+
 export function Benefits({ locale = 'es' }: Props) {
   const t = getDictionary(locale).benefits;
   return (
@@ -33,7 +36,7 @@ export function Benefits({ locale = 'es' }: Props) {
       <div className="container">
         <div className="section-heading"><p className="eyebrow">{t.eyebrow}</p><h2 id="benefits-title">{t.title[0]}<br />{t.title[1]}</h2></div>
         <div className="benefit-grid">{t.items.map(([problem, title, copy], index) => (
-          <article className="benefit-card" key={title}><span className="card-index">0{index + 1}</span><p className="card-kicker">{problem}</p><h3>{title}</h3><p>{copy}</p></article>
+          <article className="benefit-card" key={title} data-angle={angles[index]}><span className="card-index">0{index + 1}</span><p className="card-kicker">{problem}</p><h3>{title}</h3><p>{copy}</p></article>
         ))}</div>
       </div>
     </section>
@@ -81,7 +84,7 @@ function AiExample({ locale = 'es' }: Props) {
         </div>
         <div>
           <p>{t.aiCopy}</p>
-          <a className="text-link" href={localePath(locale, 'contact')}>{t.aiCta} <span aria-hidden="true">↗</span></a>
+          <a className="text-link" href="#hablemos">{t.aiCta} <span aria-hidden="true">↗</span></a>
         </div>
       </div>
       <AiReceiptFlow locale={locale} />
@@ -213,7 +216,7 @@ export function FAQ({ locale = 'es' }: Props) {
         <p className="eyebrow">{t.eyebrow}</p>
         <h2 id="faq-title">{t.title[0]}<br />{t.title[1]}</h2>
         <p>{t.different}<br />
-          <a className="text-link" href={localePath(locale, 'contact')}>{t.cta} <span aria-hidden="true">↗</span>
+          <a className="text-link" href="#hablemos">{t.cta} <span aria-hidden="true">↗</span>
           </a>
         </p>
       </div>
@@ -235,7 +238,7 @@ export function Closing({ locale = 'es' }: Props) {
           <p className="eyebrow">{t.eyebrow}</p>
           <h2 id="closing-title">{t.title[0]}<br />{t.title[1]}</h2>
           <p>{t.copy[0]}<br />{t.copy[1]}</p>
-          <a className="button button-light" href={localePath(locale, 'contact')}>{t.cta} <span aria-hidden="true">↗</span>
+          <a className="button button-light" href="#hablemos">{t.cta} <span aria-hidden="true">↗</span>
           </a>
         </div>
       </section>

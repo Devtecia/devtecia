@@ -58,7 +58,7 @@ export default function SiteHeader({ locale = 'es', page = 'home' }: { locale?: 
         <div className={`site-menu${open ? ' is-open' : ''}`} id="site-menu">
           {t.links.map(([label, href]) => <a key={href} href={`${anchorBase}${href}`} onClick={() => setOpen(false)}>{label}</a>)}
           <LanguageSwitch locale={locale} page={page} onNavigate={() => setOpen(false)} />
-          <a className="button button-small" href={localePath(locale, 'contact')} onClick={() => setOpen(false)}>{t.cta} <span aria-hidden="true">↗</span></a>
+          <a className="button button-small" href={page === 'home' ? '#hablemos' : localePath(locale, 'contact')} onClick={() => setOpen(false)}>{t.cta} <span aria-hidden="true">↗</span></a>
         </div>
       </nav>
     </header>

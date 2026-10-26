@@ -59,3 +59,46 @@ test('interest is optional, whitelisted and reaches the email', async () => {
     assert.equal((await handleContact(request({ ...lead, interest }), env, ok)).status, 400);
   }
 });
+const capture = () => { const seen = {}; return [seen, async (_, options) => { seen.payload = JSON.parse(options.body); return ok(); }]; };
+test('message is optional, but a short one is still rejected', async () => {
+  const [seen, transport] = capture();
+  const { message: _drop, ...withoutMessage } = lead;
+  for (const body of [withoutMessage, { ...lead, message: '' }, { ...lead, message: '   ' }]) {
+    assert.equal((await handleContact(request(body), env, transport)).status, 202);
+    assert.match(seen.payload.text, /\(sin mensaje\)/);
+  }
+  for (const message of ['short', 'corto', 123, null]) {
+    assert.equal((await handleContact(request({ ...lead, message }), env, ok)).status, 400);
+  }
+  assert.equal((await handleContact(request({ ...lead, message: 'x'.repeat(4001) }), env, ok)).status, 400);
+});
+test('phone is optional, validated and reaches the email', async () => {
+  const [seen, transport] = capture();
+  assert.equal((await handleContact(request({ ...lead, phone: '+57 300 123 4567' }), env, transport)).status, 202);
+  assert.match(seen.payload.text, /WhatsApp o teléfono: \+57 300 123 4567/);
+  await handleContact(request(lead), env, transport);
+  assert.match(seen.payload.text, /WhatsApp o teléfono: No indicado/);
+  for (const phone of ['abc', '123', '+57 300\r\nBcc: x', 'x'.repeat(40), 5, '++++++++', '() - . -']) {
+    assert.equal((await handleContact(request({ ...lead, phone }), env, ok)).status, 400, String(phone));
+  }
+});
+test('campaign attribution reaches the email and is sanitized, never blocking the lead', async () => {
+  const [seen, transport] = capture();
+  const attribution = { utm_source: 'meta', utm_medium: 'paid_social', utm_campaign: 'excel-oct', angle: 'excel', fbclid: 'abc123', landing: '/', referrer: 'https://l.instagram.com/' };
+  assert.equal((await handleContact(request({ ...lead, attribution }), env, transport)).status, 202);
+  for (const line of ['utm_source: meta', 'utm_medium: paid_social', 'utm_campaign: excel-oct', 'angle: excel', 'fbclid: abc123']) assert.match(seen.payload.text, new RegExp(line));
+  // Garbage must never cost a lead: wrong types are dropped, control characters stripped, long values cut, unknown keys ignored.
+  const dirty = { utm_source: 'x\r\nBcc: bad@evil.test', utm_medium: 5, utm_campaign: 'y'.repeat(500), evil: 'z', angle: ['a'] };
+  assert.equal((await handleContact(request({ ...lead, attribution: dirty }), env, transport)).status, 202);
+  assert.doesNotMatch(seen.payload.text, /\n\s*Bcc/);   // no line break survives, so no header-like line can be forged
+  assert.doesNotMatch(seen.payload.text, /^evil:/m);      // unknown key ignored
+  assert.doesNotMatch(seen.payload.text, /utm_medium/);   // wrong type dropped
+  assert.match(seen.payload.text, /utm_source: xBcc: bad@evil\.test/);
+  assert.ok(seen.payload.text.match(/utm_campaign: (y+)/)[1].length <= 200);
+  for (const attribution of ['texto', 42, null, ['a'], true]) {
+    assert.equal((await handleContact(request({ ...lead, attribution }), env, transport)).status, 202);
+  }
+  await handleContact(request(lead), env, transport);
+  assert.doesNotMatch(seen.payload.text, /Origen/);
+  assert.equal(seen.payload.subject, 'Nueva consulta desde Devtecia'); // user data never reaches headers
+});

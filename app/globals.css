@@ -721,3 +721,23 @@ section[id] { scroll-margin-top: 96px; }
   .not-found-title { font-size: 36px; line-height: 40px; }
   .not-found-copy { font-size: 16px; line-height: 24px; }
 }
+
+/* Contact form inside the home page, right after the three starting points. */
+.lead-section { scroll-margin-top: 72px; }
+.lead-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 80px; align-items: start; }
+.lead-intro .section-heading { margin-bottom: 0; }
+.lead-intro .contact-next { margin-top: 40px; }
+.lead-alt { margin-top: 32px; }
+.lead-whatsapp { font-weight: 600; }
+.lead-section .contact-panel { position: static; }
+@media (min-width: 861px) { .lead-intro .section-heading h2 { font-size: 44px; } }
+@media (max-width: 860px) {
+  .lead-layout { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  /* On a phone the form must be one short scroll away from the heading: the three steps would push it a full screen down. */
+  .lead-intro .contact-next { display: none; }
+  .lead-intro .hero-proof { margin-top: 24px; }
+}
+/* Message match: an ad that points at ?a=excel|tareas|medida lights up the starting point it talked about. */
+html[data-angle="excel"] .benefit-card[data-angle="excel"],
+html[data-angle="tareas"] .benefit-card[data-angle="tareas"],
+html[data-angle="medida"] .benefit-card[data-angle="medida"] { box-shadow: 0 0 0 2px var(--steel); }
