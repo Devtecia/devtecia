@@ -17,6 +17,7 @@ export default function Tracking({ copy: t, metaPixelId = process.env.NEXT_PUBLI
   const [open, setOpen] = useState(false);
   const firstButton = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
+  const bannerRef = useRef<HTMLElement>(null);
   const enabled = Boolean(ids.meta || ids.ga);
 
   useEffect(() => {
@@ -34,6 +35,24 @@ export default function Tracking({ copy: t, metaPixelId = process.env.NEXT_PUBLI
     // ids come from build-time env vars and never change while the page is open.
   }, [enabled]);
 
+  // While the banner is open, reserve its height at the bottom of the page so nothing it overlaps (the form's submit
+  // button on phones) is out of reach: the page can scroll past it, and focus or anchor jumps stop above it.
+  useEffect(() => {
+    const banner = bannerRef.current;
+    if (!open || !banner) return;
+    const root = document.documentElement;
+    const reserve = () => root.style.setProperty('--consent-offset', `${Math.ceil(window.innerHeight - banner.getBoundingClientRect().top) + 16}px`);
+    reserve();
+    const observer = new ResizeObserver(reserve);
+    observer.observe(banner);
+    window.addEventListener('resize', reserve);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', reserve);
+      root.style.removeProperty('--consent-offset');
+    };
+  }, [open]);
+
   if (!enabled || !open) return null;
 
   const privacy = privacyUrl(process.env.NEXT_PUBLIC_PRIVACY_URL);
@@ -47,7 +66,7 @@ export default function Tracking({ copy: t, metaPixelId = process.env.NEXT_PUBLI
   };
 
   return (
-    <section className="consent-banner" role="dialog" aria-labelledby="consent-title" aria-describedby="consent-text">
+    <section ref={bannerRef} className="consent-banner" role="dialog" aria-labelledby="consent-title" aria-describedby="consent-text">
       <h2 id="consent-title" className="consent-title">{t.title}</h2>
       <p id="consent-text" className="consent-text">{t.text}{privacy && <> <a className="text-link" href={privacy}>{t.privacy}</a></>}</p>
       {/* Same weight on purpose: rejecting must be as easy as accepting. */}

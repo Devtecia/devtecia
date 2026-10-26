@@ -744,6 +744,9 @@ html[data-angle="medida"] .benefit-card[data-angle="medida"] { box-shadow: 0 0 0
 
 /* Measurement consent: opt-in banner, shown only when a tracking id is configured. Not modal, so the page stays usable. */
 .consent-banner { position: fixed; right: 24px; bottom: 24px; z-index: 40; width: min(480px, calc(100% - 48px)); padding: 24px; border: 1px solid var(--line); border-radius: 24px; background: var(--paper); box-shadow: 0 16px 48px rgba(37, 41, 45, 0.16); }
+/* --consent-offset is set by the banner while open: it reserves room so content can scroll above it. */
+html { scroll-padding-bottom: var(--consent-offset, 0px); }
+body { padding-bottom: var(--consent-offset, 0px); }
 .consent-title { font-size: 16px; font-weight: 700; line-height: 1.5; }
 .consent-text { margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .consent-text .text-link { font-size: 14px; color: var(--graphite); text-decoration: underline; text-underline-offset: 4px; }
@@ -755,8 +758,10 @@ html[data-angle="medida"] .benefit-card[data-angle="medida"] { box-shadow: 0 0 0
 .footer-link-button { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
 .footer-link-button:hover { text-decoration: underline; text-underline-offset: 5px; }
 @media (max-width: 600px) {
-  /* Full width at the bottom with the page gutter; short enough to leave the form's submit button reachable by scrolling. */
-  .consent-banner { right: 16px; bottom: 16px; width: calc(100% - 32px); padding: 20px; border-radius: 20px; }
+  /* Full width at the bottom with the page gutter, kept compact so it takes as little of the screen as possible. */
+  .consent-banner { right: 16px; bottom: 16px; width: calc(100% - 32px); padding: 16px; border-radius: 20px; }
+  .consent-text { margin-top: 4px; }
+  .consent-actions { margin-top: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .consent-button { transition: none; }
