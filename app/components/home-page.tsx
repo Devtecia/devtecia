@@ -1,6 +1,7 @@
 import ScrollReveal from './scroll-reveal';
 import LeadSection from './lead-section';
 import SiteHeader from './site-header';
+import StickyCta from './sticky-cta';
 import { Benefits, Cases, Closing, FAQ, Hero, Process, Products, Services } from './home-sections';
 import { getDictionary, siteUrl, type Locale } from '../i18n';
 
@@ -29,6 +30,7 @@ export default function HomePage({ locale = 'es' }: { locale?: Locale }) {
         <FAQ locale={locale} />
       </main>
       <Closing locale={locale} />
+      <StickyCta label={getDictionary(locale).hero.cta} />
       <ScrollReveal />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }} />
     </>

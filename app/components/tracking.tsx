@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { privacyUrl } from '../../lib/campaign';
-import { CONSENT_OPEN_EVENT, injectTracking, readConsent, shouldLoadTracking, trackingIds, writeConsent, type Consent, type TrackerWindow } from '../../lib/consent';
+import { CONSENT_OPEN_ATTR, CONSENT_OPEN_EVENT, injectTracking, readConsent, shouldLoadTracking, trackingIds, writeConsent, type Consent, type TrackerWindow } from '../../lib/consent';
 import type { Dictionary } from '../i18n';
 
 // Meta Pixel and GA4, switched on only by NEXT_PUBLIC_META_PIXEL_ID / NEXT_PUBLIC_GA_ID and loaded only after the
@@ -43,6 +43,7 @@ export default function Tracking({ copy: t, metaPixelId = process.env.NEXT_PUBLI
     const root = document.documentElement;
     const reserve = () => root.style.setProperty('--consent-offset', `${Math.ceil(window.innerHeight - banner.getBoundingClientRect().top) + 16}px`);
     reserve();
+    root.setAttribute(CONSENT_OPEN_ATTR, '');
     const observer = new ResizeObserver(reserve);
     observer.observe(banner);
     window.addEventListener('resize', reserve);
@@ -50,6 +51,7 @@ export default function Tracking({ copy: t, metaPixelId = process.env.NEXT_PUBLI
       observer.disconnect();
       window.removeEventListener('resize', reserve);
       root.style.removeProperty('--consent-offset');
+      root.removeAttribute(CONSENT_OPEN_ATTR);
     };
   }, [open]);
 

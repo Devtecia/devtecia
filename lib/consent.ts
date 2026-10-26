@@ -8,6 +8,8 @@ export type TrackingIds = { meta: string; ga: string };
 export const CONSENT_KEY = 'devtecia_tracking_consent';
 /** Fired by the footer "Cookies" button to show the banner again. */
 export const CONSENT_OPEN_EVENT = 'devtecia:consent-open';
+/** Present on <html> while the banner is on screen, so other bottom-fixed UI (the mobile sticky CTA) can step aside. */
+export const CONSENT_OPEN_ATTR = 'data-consent-open';
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>;
 

@@ -744,9 +744,10 @@ html[data-angle="medida"] .benefit-card[data-angle="medida"] { box-shadow: 0 0 0
 
 /* Measurement consent: opt-in banner, shown only when a tracking id is configured. Not modal, so the page stays usable. */
 .consent-banner { position: fixed; right: 24px; bottom: 24px; z-index: 40; width: min(480px, calc(100% - 48px)); padding: 24px; border: 1px solid var(--line); border-radius: 24px; background: var(--paper); box-shadow: 0 16px 48px rgba(37, 41, 45, 0.16); }
-/* --consent-offset is set by the banner while open: it reserves room so content can scroll above it. */
-html { scroll-padding-bottom: var(--consent-offset, 0px); }
-body { padding-bottom: var(--consent-offset, 0px); }
+/* --consent-offset (banner open) and --sticky-offset (mobile sticky CTA on screen) reserve room so content can scroll
+   above them. Each feature owns its own variable; they never show together, so the larger one wins. */
+html { scroll-padding-bottom: max(var(--consent-offset, 0px), var(--sticky-offset, 0px)); }
+body { padding-bottom: max(var(--consent-offset, 0px), var(--sticky-offset, 0px)); }
 .consent-title { font-size: 16px; font-weight: 700; line-height: 1.5; }
 .consent-text { margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .consent-text .text-link { font-size: 14px; color: var(--graphite); text-decoration: underline; text-underline-offset: 4px; }
@@ -765,4 +766,26 @@ body { padding-bottom: var(--consent-offset, 0px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .consent-button { transition: none; }
+}
+
+/* Mobile sticky CTA: shown by JS only when neither the hero buttons nor the form are on screen; phones only. */
+.sticky-cta { display: none; }
+@media (max-width: 600px) {
+  .sticky-cta:not([hidden]) {
+    display: block;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    padding: 12px max(20px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+    animation: sticky-cta-in 400ms var(--ease);
+  }
+  .sticky-cta .button { width: 100%; }
+}
+@keyframes sticky-cta-in { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .sticky-cta:not([hidden]) { animation: none; }
 }
