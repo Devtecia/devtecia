@@ -69,6 +69,35 @@ export function whatsappUrl(number: string | undefined, message: string): string
   return /^\d{8,15}$/.test(digits) ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}` : '';
 }
 
+/** One cookie value from a `document.cookie` string, or '' when it is missing. */
+export function readCookie(cookie: string, name: string): string {
+  for (const part of cookie.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) {
+      try { return decodeURIComponent(rest.join('=')); } catch { return ''; }
+    }
+  }
+  return '';
+}
+
+const fbclidPattern = /^[A-Za-z0-9_-]{1,500}$/;
+
+/**
+ * Meta's browser ids for the Conversions API. The Pixel sets `_fbp` and `_fbc`; when `_fbc` is missing (for example
+ * the Pixel loaded after the ad click) it is rebuilt from the click id as fb.1.<ms>.<fbclid>, Meta's documented format.
+ * The server validates both shapes again.
+ */
+export function metaBrowserIds(cookie: string, search: string, storedFbclid: string | undefined, now: number): { fbp?: string; fbc?: string } {
+  const found: { fbp?: string; fbc?: string } = {};
+  const fbp = readCookie(cookie, '_fbp');
+  if (fbp) found.fbp = fbp;
+  const fbc = readCookie(cookie, '_fbc');
+  const fbclid = new URLSearchParams(search).get('fbclid') ?? storedFbclid ?? '';
+  if (fbc) found.fbc = fbc;
+  else if (fbclidPattern.test(fbclid)) found.fbc = `fb.1.${now}.${fbclid}`;
+  return found;
+}
+
 // IDs end up inside inline scripts, so only the exact shapes are accepted.
 export const isMetaPixelId = (value: unknown): value is string => typeof value === 'string' && /^\d{10,20}$/.test(value);
 export const isGaId = (value: unknown): value is string => typeof value === 'string' && /^G-[A-Z0-9]{6,14}$/.test(value);

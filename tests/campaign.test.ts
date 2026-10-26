@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import Tracking from '../app/components/tracking';
 import { getDictionary } from '../app/i18n';
-import { angleInterest, hasCampaignData, isGaId, isMetaPixelId, mergeAttribution, parseAttribution, privacyUrl, whatsappUrl } from '../lib/campaign';
+import { angleInterest, hasCampaignData, isGaId, isMetaPixelId, mergeAttribution, metaBrowserIds, parseAttribution, privacyUrl, readCookie, whatsappUrl } from '../lib/campaign';
 
 test('parses campaign parameters, the angle and an external referrer', () => {
   const found = parseAttribution('?utm_source=meta&utm_medium=paid_social&utm_campaign=excel-oct&utm_content=video1&fbclid=AbC123&a=excel', 'https://l.instagram.com/', '/', 'www.devtecia.com');
@@ -60,4 +60,16 @@ test('tracking never puts a script or the banner in the server html, even with v
     const html = renderToStaticMarkup(createElement(Tracking, { copy, ...props }));
     assert.equal(html, '');
   }
+});
+
+test('meta browser ids come from the _fbp and _fbc cookies, building fbc from fbclid when the cookie is missing', () => {
+  const now = 1_700_000_000_000;
+  assert.equal(readCookie('a=1; _fbp=fb.1.1690000000000.123456; _fbc=fb.1.1690000000000.AbC', '_fbp'), 'fb.1.1690000000000.123456');
+  assert.equal(readCookie('x_fbp=nope', '_fbp'), '');
+  assert.equal(readCookie('', '_fbc'), '');
+  assert.deepEqual(metaBrowserIds('_fbp=fb.1.1690000000000.123456; _fbc=fb.1.1690000000000.AbC', '?fbclid=Other', undefined, now), { fbp: 'fb.1.1690000000000.123456', fbc: 'fb.1.1690000000000.AbC' });
+  assert.deepEqual(metaBrowserIds('', '?fbclid=IwAR_x-1', undefined, now), { fbc: `fb.1.${now}.IwAR_x-1` });
+  assert.deepEqual(metaBrowserIds('', '', 'Stored123', now), { fbc: `fb.1.${now}.Stored123` });
+  assert.deepEqual(metaBrowserIds('', '?fbclid=%3Cscript%3E', undefined, now), {});
+  assert.deepEqual(metaBrowserIds('', '', undefined, now), {});
 });

@@ -4,7 +4,7 @@
 import { isAngle } from './campaign';
 import { shouldLoadTracking, type Consent, type TrackingIds } from './consent';
 
-export type Lead = { angle?: string; interest?: string };
+export type Lead = { angle?: string; interest?: string; eventId?: string };
 type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export const LEAD_KEY = 'devtecia_lead_pending';
@@ -12,11 +12,34 @@ export const LEAD_KEY = 'devtecia_lead_pending';
 export const LEAD_TTL_MS = 30 * 60 * 1000;
 // Mirrors the form's four interests; anything else is dropped rather than sent to the ad platforms.
 const interests = ['operations', 'automation', 'integrations', 'other'];
+// Shared by the Pixel and the Conversions API so Meta counts one lead. Mirrors the server check in lib/meta-capi.mjs.
+const eventIdPattern = /^[A-Za-z0-9-]{16,64}$/;
+
+export const isEventId = (value: unknown): value is string => typeof value === 'string' && eventIdPattern.test(value);
+
+type RandomSource = { randomUUID?: () => string; getRandomValues?: <T extends ArrayBufferView | null>(array: T) => T };
+
+/** One id per submission: a UUID when available, otherwise random bytes, otherwise time plus Math.random. */
+export function newEventId(source: RandomSource | undefined = globalThis.crypto): string {
+  try {
+    const uuid = source?.randomUUID?.();
+    if (isEventId(uuid)) return uuid;
+  } catch { /* insecure context or old browser */ }
+  try {
+    if (source?.getRandomValues) {
+      const bytes = source.getRandomValues(new Uint8Array(16));
+      return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+  } catch { /* fall through */ }
+  const random = () => Math.random().toString(36).slice(2, 10).padEnd(8, '0');
+  return `${Date.now().toString(36)}-${random()}${random()}`;
+}
 
 function known(lead: Lead): Lead {
   const found: Lead = {};
   if (isAngle(lead.angle)) found.angle = lead.angle;
   if (typeof lead.interest === 'string' && interests.includes(lead.interest)) found.interest = lead.interest;
+  if (isEventId(lead.eventId)) found.eventId = lead.eventId;
   return found;
 }
 

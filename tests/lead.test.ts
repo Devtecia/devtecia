@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { LEAD_KEY, LEAD_TTL_MS, consumeLead, decodeLead, encodeLead, markLead, settleLead, thanksUrl } from '../lib/lead';
+import { LEAD_KEY, LEAD_TTL_MS, consumeLead, decodeLead, encodeLead, isEventId, markLead, newEventId, settleLead, thanksUrl } from '../lib/lead';
 
 const memory = (initial: Record<string, string> = {}) => {
   const data: Record<string, string> = { ...initial };
@@ -69,4 +69,27 @@ test('the thanks url keeps the campaign query string', () => {
   assert.equal(thanksUrl('/gracias', ''), '/gracias');
   assert.equal(thanksUrl('/gracias', '?'), '/gracias');
   assert.equal(thanksUrl('/gracias', undefined), '/gracias');
+});
+
+test('the marker carries the shared event id when it is valid and stays readable without it', () => {
+  const eventId = '0b6f1c2e-6c39-4c0e-9a51-2f6f8d1c9e10';
+  assert.deepEqual(decodeLead(encodeLead({ angle: 'excel', eventId }, now), now), { angle: 'excel', eventId });
+  assert.deepEqual(decodeLead(encodeLead({ eventId: 'bad id<script>' }, now), now), {});
+  assert.deepEqual(decodeLead(JSON.stringify({ interest: 'other', at: now }), now), { interest: 'other' });
+  assert.deepEqual(decodeLead(JSON.stringify({ eventId: 42, at: now }), now), {});
+  const store = memory();
+  markLead(store, { interest: 'automation', eventId }, now);
+  assert.deepEqual(settleLead(store, 'granted', ids, now), { interest: 'automation', eventId });
+});
+
+test('event ids are unique, well formed and survive a missing randomUUID', () => {
+  const uuid = newEventId({ randomUUID: () => '0b6f1c2e-6c39-4c0e-9a51-2f6f8d1c9e10' });
+  assert.equal(uuid, '0b6f1c2e-6c39-4c0e-9a51-2f6f8d1c9e10');
+  const fallback = newEventId({ getRandomValues: <T extends ArrayBufferView | null>(array: T) => { new Uint8Array((array as unknown as Uint8Array).buffer).fill(171); return array; } });
+  assert.ok(isEventId(fallback), fallback);
+  const bare = newEventId(undefined);
+  assert.ok(isEventId(bare), bare);
+  assert.notEqual(newEventId(undefined), bare);
+  assert.ok(isEventId(newEventId(globalThis.crypto)));
+  for (const bad of ['', 'short', 'a'.repeat(65), 'bad id', '<x>', 42, null]) assert.equal(isEventId(bad), false, String(bad));
 });

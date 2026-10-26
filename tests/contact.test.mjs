@@ -102,3 +102,112 @@ test('campaign attribution reaches the email and is sanitized, never blocking th
   assert.doesNotMatch(seen.payload.text, /Origen/);
   assert.equal(seen.payload.subject, 'Nueva consulta desde Devtecia'); // user data never reaches headers
 });
+// Meta Conversions API: a server Lead that mirrors the browser Pixel Lead, only with consent and only after the email.
+const { createHash } = await import('node:crypto');
+const sha = value => createHash('sha256').update(value).digest('hex');
+const metaEnv = { ...env, NEXT_PUBLIC_META_PIXEL_ID: '123456789012345', META_CAPI_TOKEN: 'capi-token' };
+const eventId = '0b6f1c2e-6c39-4c0e-9a51-2f6f8d1c9e10';
+const tracked = { ...lead, email: 'Ana@Example.COM', phone: '+57 300 123 4567', interest: 'automation', attribution: { angle: 'tareas' }, eventId, consent: 'granted', fbp: 'fb.1.1700000000000.1234567890', fbc: 'fb.1.1700000000000.AbC123_x-Y', pageUrl: 'https://devtecia.com/?a=tareas#contacto' };
+const metaRequest = (body = tracked) => request(body, { 'x-forwarded-for': '203.0.113.7, 10.0.0.1', 'user-agent': 'TestAgent/1.0' });
+const router = () => {
+  const calls = [];
+  return [calls, async (url, options) => { calls.push({ url, body: options.body, payload: JSON.parse(options.body) }); return url.startsWith('https://graph.facebook.com/') ? Response.json({ events_received: 1 }) : ok(); }];
+};
+const capiCalls = calls => calls.filter(call => call.url.startsWith('https://graph.facebook.com/'));
+test('no conversions api call without consent, token or pixel', async () => {
+  for (const [body, config] of [[{ ...tracked, consent: 'denied' }, metaEnv], [{ ...tracked, consent: undefined }, metaEnv], [tracked, { ...metaEnv, META_CAPI_TOKEN: '' }], [tracked, { ...metaEnv, NEXT_PUBLIC_META_PIXEL_ID: 'abc' }], [tracked, env]]) {
+    const [calls, transport] = router();
+    assert.equal((await handleContact(metaRequest(body), config, transport)).status, 202);
+    assert.equal(capiCalls(calls).length, 0);
+    assert.equal(calls.length, 1);
+  }
+});
+test('conversions api lead carries the shared event id, hashed contact data and the test code', async () => {
+  const [calls, transport] = router();
+  assert.equal((await handleContact(metaRequest(), { ...metaEnv, META_TEST_EVENT_CODE: 'TEST123' }, transport)).status, 202);
+  const [capi] = capiCalls(calls);
+  assert.ok(capi, 'a conversions api request was sent');
+  assert.equal(calls[0].url, 'https://api.resend.com/emails', 'the email goes first');
+  assert.match(capi.url, /^https:\/\/graph\.facebook\.com\/v\d+\.\d+\/123456789012345\/events$/);
+  assert.equal(capi.payload.access_token, 'capi-token');
+  assert.equal(capi.payload.test_event_code, 'TEST123');
+  const [event] = capi.payload.data;
+  assert.equal(event.event_name, 'Lead');
+  assert.equal(event.event_id, eventId);
+  assert.equal(event.action_source, 'website');
+  assert.equal(event.event_source_url, 'https://devtecia.com/?a=tareas');
+  assert.ok(Math.abs(event.event_time - Date.now() / 1000) < 60);
+  assert.deepEqual(event.user_data, { em: [sha('ana@example.com')], ph: [sha('573001234567')], client_ip_address: '203.0.113.7', client_user_agent: 'TestAgent/1.0', fbp: tracked.fbp, fbc: tracked.fbc });
+  assert.deepEqual(event.custom_data, { content_category: 'automation', content_name: 'tareas' });
+});
+test('the graph version is configurable and the phone and test code are optional', async () => {
+  const [calls, transport] = router();
+  const { phone: _phone, ...withoutPhone } = tracked;
+  await handleContact(metaRequest(withoutPhone), { ...metaEnv, META_GRAPH_VERSION: 'v25.0' }, transport);
+  const [capi] = capiCalls(calls);
+  assert.match(capi.url, /\/v25\.0\/123456789012345\/events$/);
+  assert.equal(capi.payload.test_event_code, undefined);
+  assert.equal(capi.payload.data[0].user_data.ph, undefined);
+  const [bad, badTransport] = router();
+  await handleContact(metaRequest(), { ...metaEnv, META_GRAPH_VERSION: '../x' }, badTransport);
+  assert.match(capiCalls(bad)[0].url, /^https:\/\/graph\.facebook\.com\/v\d+\.\d+\/123456789012345\/events$/);
+});
+test('raw email and phone never reach the conversions api body', async () => {
+  const [calls, transport] = router();
+  await handleContact(metaRequest(), metaEnv, transport);
+  const [capi] = capiCalls(calls);
+  assert.doesNotMatch(capi.body, /ana@example\.com|Ana@Example|300 123 4567|573001234567|Ana"/i);
+});
+test('invalid event id skips the conversions api; invalid fbc, fbp and foreign page urls are dropped', async () => {
+  for (const bad of ['', 'x', 'a'.repeat(200), 'bad id<script>', 42]) {
+    const [calls, transport] = router();
+    assert.equal((await handleContact(metaRequest({ ...tracked, eventId: bad }), metaEnv, transport)).status, 202);
+    assert.equal(capiCalls(calls).length, 0, String(bad));
+  }
+  const [calls, transport] = router();
+  assert.equal((await handleContact(metaRequest({ ...tracked, fbc: 'fb.1.x.<script>', fbp: 'nope', pageUrl: 'https://evil.example/' }), metaEnv, transport)).status, 202);
+  const [event] = capiCalls(calls)[0].payload.data;
+  assert.equal(event.user_data.fbc, undefined);
+  assert.equal(event.user_data.fbp, undefined);
+  assert.equal(event.event_source_url, 'https://devtecia.com/');
+});
+test('tracking fields never reject a lead', async () => {
+  for (const patch of [{ eventId: { x: 1 } }, { consent: 42 }, { fbc: ['x'] }, { pageUrl: null }]) {
+    assert.equal((await handleContact(metaRequest({ ...tracked, ...patch }), metaEnv, ok)).status, 202);
+  }
+});
+test('a failing or hanging conversions api never changes the accepted response', async () => {
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (...args) => warnings.push(args.join(' '));
+  try {
+    for (const fail of [async () => new Response('', { status: 400 }), async () => { throw new Error('network'); }]) {
+      const transport = async (url, options) => url.startsWith('https://graph.facebook.com/') ? fail() : ok();
+      assert.equal((await handleContact(metaRequest(), metaEnv, transport)).status, 202);
+    }
+    const started = Date.now();
+    let signal;
+    const hanging = async (url, options) => { if (!url.startsWith('https://graph.facebook.com/')) return ok(); signal = options.signal; return new Promise(() => {}); };
+    assert.equal((await handleContact(metaRequest(), metaEnv, hanging)).status, 202);
+    assert.ok(Date.now() - started < 4000, 'the wait is bounded');
+    assert.equal(signal.aborted, true);
+    assert.ok(warnings.length >= 3);
+    for (const warning of warnings) assert.doesNotMatch(warning, /ana@example|capi-token|203\.0\.113\.7/i);
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+test('with a scheduler the conversions api runs after the response, never before the email is accepted', async () => {
+  const jobs = [];
+  const [calls, transport] = router();
+  const response = await handleContact(metaRequest(), metaEnv, transport, 8000, job => jobs.push(job));
+  assert.equal(response.status, 202);
+  assert.equal(capiCalls(calls).length, 0);
+  assert.equal(jobs.length, 1);
+  await jobs[0]();
+  assert.equal(capiCalls(calls).length, 1);
+  const failedJobs = [];
+  const failing = async () => new Response('', { status: 500 });
+  assert.equal((await handleContact(metaRequest(), metaEnv, failing, 8000, job => failedJobs.push(job))).status, 502);
+  assert.equal(failedJobs.length, 0);
+});

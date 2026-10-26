@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { angleInterest, readAttribution, privacyUrl } from '../../lib/campaign';
-import { markLead, thanksUrl } from '../../lib/lead';
+import { angleInterest, metaBrowserIds, readAttribution, privacyUrl } from '../../lib/campaign';
+import { readConsent } from '../../lib/consent';
+import { markLead, newEventId, thanksUrl } from '../../lib/lead';
 import { getDictionary, localePath, type Locale } from '../i18n';
 
 type State = 'idle' | 'pending' | 'error';
@@ -99,10 +100,21 @@ export default function ContactForm({ locale = 'es' }: { locale?: Locale }) {
     setNotice(t.sending);
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 15000);
+    // One id per submission, shared by the server Conversions API event and the Pixel on the thanks page.
+    const eventId = newEventId();
+    const attribution = readAttribution();
+    let consent = null;
+    try { consent = readConsent(window.localStorage); } catch { /* blocked storage means no consent */ }
+    let cookie = '';
+    try { cookie = document.cookie; } catch { /* blocked cookies */ }
+    const meta = metaBrowserIds(cookie, window.location.search, attribution.fbclid, Date.now());
     try {
       const response = await fetch(locale === 'es' ? '/api/contact' : `/api/contact?lang=${locale}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...Object.fromEntries(data), attribution: readAttribution() }), signal: controller.signal,
+        body: JSON.stringify({
+          ...Object.fromEntries(data), attribution, eventId, consent: consent === 'granted' ? 'granted' : 'denied',
+          ...meta, pageUrl: window.location.href.split('#')[0],
+        }), signal: controller.signal,
       });
       const result = await response.json();
       if (response.status !== 202) throw new Error(typeof result.message === 'string' ? result.message : t.unconfirmed);
@@ -110,7 +122,7 @@ export default function ContactForm({ locale = 'es' }: { locale?: Locale }) {
       // the visitor still gets there, just untracked. The form stays pending (button disabled) while the page changes.
       let store: Storage | undefined;
       try { store = window.sessionStorage; } catch { /* blocked storage */ }
-      markLead(store, { angle: readAttribution().angle, interest: String(data.get('interest') ?? '') }, Date.now());
+      markLead(store, { angle: attribution.angle, interest: String(data.get('interest') ?? ''), eventId }, Date.now());
       window.location.assign(thanksUrl(localePath(locale, 'thanks'), window.location.search));
       return;
     } catch (error) {
